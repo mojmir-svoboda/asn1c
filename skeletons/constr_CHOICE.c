@@ -851,7 +851,7 @@ CHOICE_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	else if(td->per_constraints) ct = &td->per_constraints->value;
 	else ct = 0;
 
-	if(ct && ct->flags & APC_EXTENSIBLE) {
+	if(ct && ct->flags & asn_per_constraint_s::APC_EXTENSIBLE) {
 		value = per_get_few_bits(pd, 1);
 		if(value < 0) _ASN_DECODE_STARVED;
 		if(value) ct = 0;	/* Not restricted */
@@ -946,7 +946,7 @@ CHOICE_encode_uper(asn_TYPE_descriptor_t *td,
 	if(ct && ct->range_bits >= 0) {
 		if(present_enc < ct->lower_bound
 		|| present_enc > ct->upper_bound) {
-			if(ct->flags & APC_EXTENSIBLE) {
+			if(ct->flags & asn_per_constraint_s::APC_EXTENSIBLE) {
 				if(per_put_few_bits(po, 1, 1))
 					_ASN_ENCODE_FAILED;
 			} else {
@@ -955,7 +955,7 @@ CHOICE_encode_uper(asn_TYPE_descriptor_t *td,
 			ct = 0;
 		}
 	}
-	if(ct && ct->flags & APC_EXTENSIBLE)
+	if(ct && ct->flags & asn_per_constraint_s::APC_EXTENSIBLE)
 		if(per_put_few_bits(po, 0, 1))
 			_ASN_ENCODE_FAILED;
 

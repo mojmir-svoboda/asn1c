@@ -48,7 +48,7 @@ typedef struct enc_dyn_arg {
 } enc_dyn_arg;
 static int
 encode_dyn_cb(const void *buffer, size_t size, void *key) {
-	enc_dyn_arg *arg = key;
+	enc_dyn_arg *arg = (enc_dyn_arg *)key;
 	if(arg->length + size >= arg->allocated) {
 		void *p;
 		arg->allocated = arg->allocated ? (arg->allocated << 2) : size;

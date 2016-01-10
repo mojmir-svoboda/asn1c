@@ -892,7 +892,7 @@ SET_OF_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	else if(td->per_constraints) ct = &td->per_constraints->size;
 	else ct = 0;
 
-	if(ct && ct->flags & APC_EXTENSIBLE) {
+	if(ct && ct->flags & asn_per_constraint_s::APC_EXTENSIBLE) {
 		int value = per_get_few_bits(pd, 1);
 		if(value < 0) _ASN_DECODE_STARVED;
 		if(value) ct = 0;	/* Not restricted! */

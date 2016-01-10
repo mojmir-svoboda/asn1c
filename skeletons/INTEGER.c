@@ -293,7 +293,7 @@ INTEGER_st_prealloc(INTEGER_t *st, int min_size) {
 	if(p) {
 		void *b = st->buf;
 		st->size = 0;
-		st->buf = p;
+		st->buf = (uint8_t *)p;
 		FREEMEM(b);
 		return 0;
 	} else {
@@ -573,7 +573,7 @@ INTEGER_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	if(!constraints) constraints = td->per_constraints;
 	ct = constraints ? &constraints->value : 0;
 
-	if(ct && ct->flags & APC_EXTENSIBLE) {
+	if(ct && ct->flags & asn_per_constraint_s::APC_EXTENSIBLE) {
 		int inext = per_get_few_bits(pd, 1);
 		if(inext < 0) _ASN_DECODE_STARVED;
 		if(inext) ct = 0;
@@ -583,11 +583,11 @@ INTEGER_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	st->buf = 0;
 	st->size = 0;
 	if(ct) {
-		if(ct->flags & APC_SEMI_CONSTRAINED) {
+		if(ct->flags & asn_per_constraint_s::APC_SEMI_CONSTRAINED) {
 			st->buf = (uint8_t *)CALLOC(1, 2);
 			if(!st->buf) _ASN_DECODE_FAILED;
 			st->size = 1;
-		} else if(ct->flags & APC_CONSTRAINED && ct->range_bits >= 0) {
+		} else if(ct->flags & asn_per_constraint_s::APC_CONSTRAINED && ct->range_bits >= 0) {
 			size_t size = (ct->range_bits + 7) >> 3;
 			st->buf = (uint8_t *)MALLOC(1 + size + 1);
 			if(!st->buf) _ASN_DECODE_FAILED;
@@ -596,7 +596,7 @@ INTEGER_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	}
 
 	/* X.691-2008/11, #13.2.2, constrained whole number */
-	if(ct && ct->flags != APC_UNCONSTRAINED) {
+	if(ct && ct->flags != asn_per_constraint_s::APC_UNCONSTRAINED) {
 		/* #11.5.6 */
 		ASN_DEBUG("Integer with range %d bits", ct->range_bits);
 		if(ct->range_bits >= 0) {
@@ -691,7 +691,7 @@ INTEGER_encode_uper(asn_TYPE_descriptor_t *td,
 			if(asn_INTEGER2ulong(st, &uval))
 				_ASN_ENCODE_FAILED;
 			/* Check proper range */
-			if(ct->flags & APC_SEMI_CONSTRAINED) {
+			if(ct->flags & asn_per_constraint_s::APC_SEMI_CONSTRAINED) {
 				if(uval < (unsigned long)ct->lower_bound)
 					inext = 1;
 			} else if(ct->range_bits >= 0) {
@@ -708,7 +708,7 @@ INTEGER_encode_uper(asn_TYPE_descriptor_t *td,
 			if(asn_INTEGER2long(st, &value))
 				_ASN_ENCODE_FAILED;
 			/* Check proper range */
-			if(ct->flags & APC_SEMI_CONSTRAINED) {
+			if(ct->flags & asn_per_constraint_s::APC_SEMI_CONSTRAINED) {
 				if(value < ct->lower_bound)
 					inext = 1;
 			} else if(ct->range_bits >= 0) {
@@ -721,7 +721,7 @@ INTEGER_encode_uper(asn_TYPE_descriptor_t *td,
 				ct->lower_bound, ct->upper_bound,
 				inext ? "ext" : "fix");
 		}
-		if(ct->flags & APC_EXTENSIBLE) {
+		if(ct->flags & asn_per_constraint_s::APC_EXTENSIBLE) {
 			if(per_put_few_bits(po, inext, 1))
 				_ASN_ENCODE_FAILED;
 			if(inext) ct = 0;

@@ -166,8 +166,8 @@ SEQUENCE_OF_encode_uper(asn_TYPE_descriptor_t *td,
 				|| list->count > ct->upper_bound);
 		ASN_DEBUG("lb %ld ub %ld %s",
 			ct->lower_bound, ct->upper_bound,
-			ct->flags & APC_EXTENSIBLE ? "ext" : "fix");
-		if(ct->flags & APC_EXTENSIBLE) {
+			ct->flags & asn_per_constraint_s::APC_EXTENSIBLE ? "ext" : "fix");
+		if(ct->flags & asn_per_constraint_s::APC_EXTENSIBLE) {
 			/* Declare whether size is in extension root */
 			if(per_put_few_bits(po, not_in_root, 1))
 				_ASN_ENCODE_FAILED;

@@ -17,11 +17,11 @@ static const ber_tlv_tag_t asn_DEF_OCTET_STRING_tags[] = {
 static const asn_OCTET_STRING_specifics_t asn_DEF_OCTET_STRING_specs = {
 	sizeof(OCTET_STRING_t),
 	offsetof(OCTET_STRING_t, _asn_ctx),
-	ASN_OSUBV_STR
+	asn_OCTET_STRING_specifics_s::ASN_OSUBV_STR
 };
 static const asn_per_constraints_t asn_DEF_OCTET_STRING_constraints = {
-	{ APC_CONSTRAINED, 8, 8, 0, 255 },
-	{ APC_SEMI_CONSTRAINED, -1, -1, 0, 0 },
+	{ asn_per_constraint_s::APC_CONSTRAINED, 8, 8, 0, 255 },
+	{ asn_per_constraint_s::APC_SEMI_CONSTRAINED, -1, -1, 0, 0 },
 	0, 0
 };
 asn_TYPE_descriptor_t asn_DEF_OCTET_STRING = {
@@ -178,11 +178,11 @@ OCTET_STRING_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 	struct _stack *stck;		/* Expectations stack structure */
 	struct _stack_el *sel = 0;	/* Stack element */
 	int tlv_constr;
-	enum asn_OS_Subvariant type_variant = specs->subvariant;
+	enum asn_OS_Subvariant type_variant = (asn_OS_Subvariant)specs->subvariant;
 
 	ASN_DEBUG("Decoding %s as %s (frame %ld)",
 		td->name,
-		(type_variant == ASN_OSUBV_STR) ?
+		(type_variant == asn_OCTET_STRING_specifics_s::ASN_OSUBV_STR) ?
 			"OCTET STRING" : "OS-SpecialCase",
 		(long)size);
 
@@ -223,7 +223,7 @@ OCTET_STRING_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 			 * Jump into stackless primitive decoding.
 			 */
 			_CH_PHASE(ctx, 3);
-			if(type_variant == ASN_OSUBV_ANY && tag_mode != 1)
+			if(type_variant == asn_OCTET_STRING_specifics_s::ASN_OSUBV_ANY && tag_mode != 1)
 				APPEND(buf_ptr, rval.consumed);
 			ADVANCE(rval.consumed);
 			goto phase3;
@@ -302,7 +302,7 @@ OCTET_STRING_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 
 			ASN_DEBUG("Eat EOC; wn=%d--", sel->want_nulls);
 
-			if(type_variant == ASN_OSUBV_ANY
+			if(type_variant == asn_OCTET_STRING_specifics_s::ASN_OSUBV_ANY
 			&& (tag_mode != 1 || sel->cont_level))
 				APPEND("\0\0", 2);
 
@@ -327,10 +327,10 @@ OCTET_STRING_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 		 * depending on ASN.1 type being decoded.
 		 */
 		switch(type_variant) {
-		case ASN_OSUBV_BIT:
+		case asn_OCTET_STRING_specifics_s::ASN_OSUBV_BIT:
 			/* X.690: 8.6.4.1, NOTE 2 */
 			/* Fall through */
-		case ASN_OSUBV_STR:
+		case asn_OCTET_STRING_specifics_s::ASN_OSUBV_STR:
 		default:
 			if(sel) {
 				int level = sel->cont_level;
@@ -345,7 +345,7 @@ OCTET_STRING_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 				/* else, Fall through */
 			}
 			/* Fall through */
-		case ASN_OSUBV_ANY:
+		case asn_OCTET_STRING_specifics_s::ASN_OSUBV_ANY:
 			expected_tag = tlv_tag;
 			break;
 		}
@@ -390,7 +390,7 @@ OCTET_STRING_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 		} else {
 			sel->left = tlv_len;
 		}
-		if(type_variant == ASN_OSUBV_ANY
+		if(type_variant == asn_OCTET_STRING_specifics_s::ASN_OSUBV_ANY
 		&& (tag_mode != 1 || sel->cont_level))
 			APPEND(buf_ptr, tlvl);
 		sel->got += tlvl;
@@ -424,7 +424,7 @@ OCTET_STRING_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 		len = ((ber_tlv_len_t)size < sel->left)
 				? (ber_tlv_len_t)size : sel->left;
 		if(len > 0) {
-			if(type_variant == ASN_OSUBV_BIT
+			if(type_variant == asn_OCTET_STRING_specifics_s::ASN_OSUBV_BIT
 			&& sel->bits_chopped == 0) {
 				/* Put the unused-bits-octet away */
 				st->bits_unused = *(const uint8_t *)buf_ptr;
@@ -457,7 +457,7 @@ OCTET_STRING_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 
 		if(size < (size_t)ctx->left) {
 			if(!size) RETURN(RC_WMORE);
-			if(type_variant == ASN_OSUBV_BIT && !ctx->context) {
+			if(type_variant == asn_OCTET_STRING_specifics_s::ASN_OSUBV_BIT && !ctx->context) {
 				st->bits_unused = *(const uint8_t *)buf_ptr;
 				ctx->left--;
 				ADVANCE(1);
@@ -468,7 +468,7 @@ OCTET_STRING_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 			ADVANCE(size);
 			RETURN(RC_WMORE);
 		} else {
-			if(type_variant == ASN_OSUBV_BIT
+			if(type_variant == asn_OCTET_STRING_specifics_s::ASN_OSUBV_BIT
 			&& !ctx->context && ctx->left) {
 				st->bits_unused = *(const uint8_t *)buf_ptr;
 				ctx->left--;
@@ -495,14 +495,14 @@ OCTET_STRING_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 	/*
 	 * BIT STRING-specific processing.
 	 */
-	if(type_variant == ASN_OSUBV_BIT && st->size) {
+	if(type_variant == asn_OCTET_STRING_specifics_s::ASN_OSUBV_BIT && st->size) {
 		/* Finalize BIT STRING: zero out unused bits. */
 		st->buf[st->size-1] &= 0xff << st->bits_unused;
 	}
 
 	ASN_DEBUG("Took %ld bytes to encode %s: [%s]:%ld",
 		(long)consumed_myself, td->name,
-		(type_variant == ASN_OSUBV_STR) ? (char *)st->buf : "<data>",
+		(type_variant == asn_OCTET_STRING_specifics_s::ASN_OSUBV_STR) ? (char *)st->buf : "<data>",
 		(long)st->size);
 
 
@@ -521,7 +521,7 @@ OCTET_STRING_encode_der(asn_TYPE_descriptor_t *td, void *sptr,
 				? (asn_OCTET_STRING_specifics_t *)td->specifics
 				: &asn_DEF_OCTET_STRING_specs;
 	BIT_STRING_t *st = (BIT_STRING_t *)sptr;
-	enum asn_OS_Subvariant type_variant = specs->subvariant;
+	enum asn_OS_Subvariant type_variant = (asn_OS_Subvariant)specs->subvariant;
 	int fix_last_byte = 0;
 
 	ASN_DEBUG("%s %s as OCTET STRING",
@@ -530,10 +530,10 @@ OCTET_STRING_encode_der(asn_TYPE_descriptor_t *td, void *sptr,
 	/*
 	 * Write tags.
 	 */
-	if(type_variant != ASN_OSUBV_ANY || tag_mode == 1) {
+	if(type_variant != asn_OCTET_STRING_specifics_s::ASN_OSUBV_ANY || tag_mode == 1) {
 		er.encoded = der_write_tags(td,
-				(type_variant == ASN_OSUBV_BIT) + st->size,
-			tag_mode, type_variant == ASN_OSUBV_ANY, tag,
+				(type_variant == asn_OCTET_STRING_specifics_s::ASN_OSUBV_BIT) + st->size,
+			tag_mode, type_variant == asn_OCTET_STRING_specifics_s::ASN_OSUBV_ANY, tag,
 			cb, app_key);
 		if(er.encoded == -1) {
 			er.failed_type = td;
@@ -542,19 +542,19 @@ OCTET_STRING_encode_der(asn_TYPE_descriptor_t *td, void *sptr,
 		}
 	} else {
 		/* Disallow: [<tag>] IMPLICIT ANY */
-		assert(type_variant != ASN_OSUBV_ANY || tag_mode != -1);
+		assert(type_variant != asn_OCTET_STRING_specifics_s::ASN_OSUBV_ANY || tag_mode != -1);
 		er.encoded = 0;
 	}
 
 	if(!cb) {
-		er.encoded += (type_variant == ASN_OSUBV_BIT) + st->size;
+		er.encoded += (type_variant == asn_OCTET_STRING_specifics_s::ASN_OSUBV_BIT) + st->size;
 		_ASN_ENCODED_OK(er);
 	}
 
 	/*
 	 * Prepare to deal with the last octet of BIT STRING.
 	 */
-	if(type_variant == ASN_OSUBV_BIT) {
+	if(type_variant == asn_OCTET_STRING_specifics_s::ASN_OSUBV_BIT) {
 		uint8_t b = st->bits_unused & 0x07;
 		if(b && st->size) fix_last_byte = 1;
 		_ASN_CALLBACK(&b, 1);
@@ -1357,28 +1357,28 @@ OCTET_STRING_decode_uper(asn_codec_ctx_t *opt_codec_ctx,
 
 	switch(specs->subvariant) {
 	default:
-	case ASN_OSUBV_ANY:
+	case asn_OCTET_STRING_specifics_s::ASN_OSUBV_ANY:
 		ASN_DEBUG("Unrecognized subvariant %d", specs->subvariant);
 		RETURN(RC_FAIL);
-	case ASN_OSUBV_BIT:
+	case asn_OCTET_STRING_specifics_s::ASN_OSUBV_BIT:
 		canonical_unit_bits = unit_bits = 1;
 		bpc = OS__BPC_BIT;
 		break;
-	case ASN_OSUBV_STR:
+	case asn_OCTET_STRING_specifics_s::ASN_OSUBV_STR:
 		canonical_unit_bits = unit_bits = 8;
-		if(cval->flags & APC_CONSTRAINED)
+		if(cval->flags & asn_per_constraint_s::APC_CONSTRAINED)
 			unit_bits = cval->range_bits;
 		bpc = OS__BPC_CHAR;
 		break;
-	case ASN_OSUBV_U16:
+	case asn_OCTET_STRING_specifics_s::ASN_OSUBV_U16:
 		canonical_unit_bits = unit_bits = 16;
-		if(cval->flags & APC_CONSTRAINED)
+		if(cval->flags & asn_per_constraint_s::APC_CONSTRAINED)
 			unit_bits = cval->range_bits;
 		bpc = OS__BPC_U16;
 		break;
-	case ASN_OSUBV_U32:
+	case asn_OCTET_STRING_specifics_s::ASN_OSUBV_U32:
 		canonical_unit_bits = unit_bits = 32;
-		if(cval->flags & APC_CONSTRAINED)
+		if(cval->flags & asn_per_constraint_s::APC_CONSTRAINED)
 			unit_bits = cval->range_bits;
 		bpc = OS__BPC_U32;
 		break;
@@ -1393,10 +1393,10 @@ OCTET_STRING_decode_uper(asn_codec_ctx_t *opt_codec_ctx,
 	}
 
 	ASN_DEBUG("PER Decoding %s size %ld .. %ld bits %d",
-		csiz->flags & APC_EXTENSIBLE ? "extensible" : "non-extensible",
+		csiz->flags & asn_per_constraint_s::APC_EXTENSIBLE ? "extensible" : "non-extensible",
 		csiz->lower_bound, csiz->upper_bound, csiz->effective_bits);
 
-	if(csiz->flags & APC_EXTENSIBLE) {
+	if(csiz->flags & asn_per_constraint_s::APC_EXTENSIBLE) {
 		int inext = per_get_few_bits(pd, 1);
 		if(inext < 0) RETURN(RC_WMORE);
 		if(inext) {
@@ -1529,36 +1529,36 @@ OCTET_STRING_encode_uper(asn_TYPE_descriptor_t *td,
 		cval = &asn_DEF_OCTET_STRING_constraints.value;
 		csiz = &asn_DEF_OCTET_STRING_constraints.size;
 	}
-	ct_extensible = csiz->flags & APC_EXTENSIBLE;
+	ct_extensible = csiz->flags & asn_per_constraint_s::APC_EXTENSIBLE;
 
 	switch(specs->subvariant) {
 	default:
-	case ASN_OSUBV_ANY:
+	case asn_OCTET_STRING_specifics_s::ASN_OSUBV_ANY:
 		_ASN_ENCODE_FAILED;
-	case ASN_OSUBV_BIT:
+	case asn_OCTET_STRING_specifics_s::ASN_OSUBV_BIT:
 		canonical_unit_bits = unit_bits = 1;
 		bpc = OS__BPC_BIT;
 		sizeinunits = st->size * 8 - (st->bits_unused & 0x07);
 		ASN_DEBUG("BIT STRING of %d bytes, %d bits unused",
 				sizeinunits, st->bits_unused);
 		break;
-	case ASN_OSUBV_STR:
+	case asn_OCTET_STRING_specifics_s::ASN_OSUBV_STR:
 		canonical_unit_bits = unit_bits = 8;
-		if(cval->flags & APC_CONSTRAINED)
+		if(cval->flags & asn_per_constraint_s::APC_CONSTRAINED)
 			unit_bits = cval->range_bits;
 		bpc = OS__BPC_CHAR;
 		sizeinunits = st->size;
 		break;
-	case ASN_OSUBV_U16:
+	case asn_OCTET_STRING_specifics_s::ASN_OSUBV_U16:
 		canonical_unit_bits = unit_bits = 16;
-		if(cval->flags & APC_CONSTRAINED)
+		if(cval->flags & asn_per_constraint_s::APC_CONSTRAINED)
 			unit_bits = cval->range_bits;
 		bpc = OS__BPC_U16;
 		sizeinunits = st->size / 2;
 		break;
-	case ASN_OSUBV_U32:
+	case asn_OCTET_STRING_specifics_s::ASN_OSUBV_U32:
 		canonical_unit_bits = unit_bits = 32;
-		if(cval->flags & APC_CONSTRAINED)
+		if(cval->flags & asn_per_constraint_s::APC_CONSTRAINED)
 			unit_bits = cval->range_bits;
 		bpc = OS__BPC_U32;
 		sizeinunits = st->size / 4;

@@ -94,7 +94,7 @@ NativeEnumerated_decode_uper(asn_codec_ctx_t *opt_codec_ctx,
 
 	ASN_DEBUG("Decoding %s as NativeEnumerated", td->name);
 
-	if(ct->flags & APC_EXTENSIBLE) {
+	if(ct->flags & asn_per_constraint_s::APC_EXTENSIBLE) {
 		int inext = per_get_few_bits(pd, 1);
 		if(inext < 0) _ASN_DECODE_STARVED;
 		if(inext) ct = 0;
@@ -127,8 +127,8 @@ NativeEnumerated_decode_uper(asn_codec_ctx_t *opt_codec_ctx,
 
 static int
 NativeEnumerated__compar_value2enum(const void *ap, const void *bp) {
-	const asn_INTEGER_enum_map_t *a = ap;
-	const asn_INTEGER_enum_map_t *b = bp;
+	const asn_INTEGER_enum_map_t *a = (asn_INTEGER_enum_map_t *)ap;
+	const asn_INTEGER_enum_map_t *b = (asn_INTEGER_enum_map_t *)bp;
 	if(a->nat_value == b->nat_value)
 		return 0;
 	if(a->nat_value < b->nat_value)
@@ -162,7 +162,7 @@ NativeEnumerated_encode_uper(asn_TYPE_descriptor_t *td,
 	if(native < 0) _ASN_ENCODE_FAILED;
 
 	key.nat_value = native;
-	kf = bsearch(&key, specs->value2enum, specs->map_count,
+	kf = (asn_INTEGER_enum_map_t *)bsearch(&key, specs->value2enum, specs->map_count,
 		sizeof(key), NativeEnumerated__compar_value2enum);
 	if(!kf) {
 		ASN_DEBUG("No element corresponds to %ld", native);
@@ -176,7 +176,7 @@ NativeEnumerated_encode_uper(asn_TYPE_descriptor_t *td,
 		if(value >= cmpWith)
 			inext = 1;
 	}
-	if(ct->flags & APC_EXTENSIBLE) {
+	if(ct->flags & asn_per_constraint_s::APC_EXTENSIBLE) {
 		if(per_put_few_bits(po, inext, 1))
 			_ASN_ENCODE_FAILED;
 		if(inext) ct = 0;

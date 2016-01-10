@@ -39,7 +39,7 @@ uper_open_type_put(asn_TYPE_descriptor_t *td, asn_per_constraints_t *constraints
 		ASN_DEBUG("Prepending length %d to %s and allowing to save %d",
 			(int)size, td->name, (int)maySave);
 		if(maySave < 0) break;
-		if(per_put_many_bits(po, bptr, maySave * 8)) break;
+		if(per_put_many_bits(po, (uint8_t *)bptr, maySave * 8)) break;
 		bptr = (char *)bptr + maySave;
 		toGo -= maySave;
 	}
@@ -83,7 +83,7 @@ uper_open_type_get_simple(asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
 				FREEMEM(buf);
 				_ASN_DECODE_FAILED;
 			}
-			buf = ptr;
+			buf = (uint8_t *)ptr;
 		}
 		if(per_get_many_bits(pd, buf + bufLen, 0, chunk_bytes << 3)) {
 			FREEMEM(buf);
@@ -287,7 +287,7 @@ uper_sot_suck(asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
 
 static int
 uper_ugot_refill(asn_per_data_t *pd) {
-	uper_ugot_key *arg = pd->refill_key;
+	uper_ugot_key *arg = (uper_ugot_key *)pd->refill_key;
 	ssize_t next_chunk_bytes, next_chunk_bits;
 	ssize_t avail;
 
