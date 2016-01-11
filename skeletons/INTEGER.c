@@ -640,7 +640,7 @@ INTEGER_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 		len = uper_get_length(pd, -1, &repeat);
 		if(len < 0) _ASN_DECODE_STARVED;
 
-		p = REALLOC(st->buf, st->size + len + 1);
+		p = REALLOC(st->buf, st->size, st->size + len + 1);
 		if(!p) _ASN_DECODE_FAILED;
 		st->buf = (uint8_t *)p;
 

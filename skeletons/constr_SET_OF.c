@@ -622,7 +622,7 @@ SET_OF_encode_xer_callback(const void *buffer, size_t size, void *key) {
 	xer_tmp_enc_t *t = (xer_tmp_enc_t *)key;
 	if(t->offset + size >= t->size) {
 		size_t newsize = (t->size << 2) + size;
-		void *p = REALLOC(t->buffer, newsize);
+		void *p = REALLOC(t->buffer, t->size, newsize);
 		if(!p) return -1;
 		t->buffer = p;
 		t->size = newsize;

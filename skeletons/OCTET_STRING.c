@@ -89,7 +89,7 @@ asn_TYPE_descriptor_t asn_DEF_OCTET_STRING = {
 			    while(_ns <= _es);				\
 			/* int is really a typeof(st->size): */		\
 			if((int)_ns < 0) RETURN(RC_FAIL);		\
-			ptr = REALLOC(st->buf, _ns);			\
+			ptr = REALLOC(st->buf, st->size, _ns);			\
 			if(ptr) {					\
 				st->buf = (uint8_t *)ptr;		\
 				ctx->context = _ns;			\
@@ -720,7 +720,7 @@ OCTET_STRING__handle_control_chars(void *struct_ptr, const void *chunk_buf, size
 	int control_char = OS__check_escaped_control_char(chunk_buf,chunk_size);
 	if(control_char >= 0) {
 		OCTET_STRING_t *st = (OCTET_STRING_t *)struct_ptr;
-		void *p = REALLOC(st->buf, st->size + 2);
+		void *p = REALLOC(st->buf, st->size, st->size + 2);
 		if(p) {
 			st->buf = (uint8_t *)p;
 			st->buf[st->size++] = control_char;
@@ -791,7 +791,7 @@ static ssize_t OCTET_STRING__convert_hexadecimal(void *sptr, const void *chunk_b
 
 	/* Reallocate buffer according to high cap estimation */
 	ssize_t _ns = st->size + (chunk_size + 1) / 2;
-	void *nptr = REALLOC(st->buf, _ns + 1);
+	void *nptr = REALLOC(st->buf, st->size, _ns + 1);
 	if(!nptr) return -1;
 	st->buf = (uint8_t *)nptr;
 	buf = st->buf + st->size;
@@ -866,7 +866,7 @@ static ssize_t OCTET_STRING__convert_binary(void *sptr, const void *chunk_buf, s
 
 	/* Reallocate buffer according to high cap estimation */
 	ssize_t _ns = st->size + (chunk_size + 7) / 8;
-	void *nptr = REALLOC(st->buf, _ns + 1);
+	void *nptr = REALLOC(st->buf, st->size, _ns + 1);
 	if(!nptr) return -1;
 	st->buf = (uint8_t *)nptr;
 	buf = st->buf + st->size;
@@ -967,7 +967,7 @@ static ssize_t OCTET_STRING__convert_entrefs(void *sptr, const void *chunk_buf, 
 
 	/* Reallocate buffer */
 	ssize_t _ns = st->size + chunk_size;
-	void *nptr = REALLOC(st->buf, _ns + 1);
+	void *nptr = REALLOC(st->buf, st->size, _ns + 1);
 	if(!nptr) return -1;
 	st->buf = (uint8_t *)nptr;
 	buf = st->buf + st->size;
@@ -1471,7 +1471,7 @@ OCTET_STRING_decode_uper(asn_codec_ctx_t *opt_codec_ctx,
 				st->bits_unused = 8 - (len_bits & 0x7);
 			/* len_bits be multiple of 16K if repeat is set */
 		}
-		p = REALLOC(st->buf, st->size + len_bytes + 1);
+		p = REALLOC(st->buf, st->size, st->size + len_bytes + 1);
 		if(!p) RETURN(RC_FAIL);
 		st->buf = (uint8_t *)p;
 

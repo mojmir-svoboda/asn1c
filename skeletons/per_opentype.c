@@ -76,9 +76,11 @@ uper_open_type_get_simple(asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
 			_ASN_DECODE_STARVED;
 		}
 		if(bufLen + chunk_bytes > bufSize) {
-			void *ptr;
+			void *ptr = 0;
+			size_t oldSize = 0;
+			oldSize = bufSize;
 			bufSize = chunk_bytes + (bufSize << 2);
-			ptr = REALLOC(buf, bufSize);
+			ptr = REALLOC(buf, oldSize, bufSize);
 			if(!ptr) {
 				FREEMEM(buf);
 				_ASN_DECODE_FAILED;

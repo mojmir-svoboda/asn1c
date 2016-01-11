@@ -51,8 +51,9 @@ encode_dyn_cb(const void *buffer, size_t size, void *key) {
 	enc_dyn_arg *arg = (enc_dyn_arg *)key;
 	if(arg->length + size >= arg->allocated) {
 		void *p;
+		size_t oldsize = arg->allocated;
 		arg->allocated = arg->allocated ? (arg->allocated << 2) : size;
-		p = REALLOC(arg->buffer, arg->allocated);
+		p = REALLOC(arg->buffer, oldsize, arg->allocated);
 		if(!p) {
 			FREEMEM(arg->buffer);
 			memset(arg, 0, sizeof(*arg));
