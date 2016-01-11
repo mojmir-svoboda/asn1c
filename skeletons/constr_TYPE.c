@@ -69,9 +69,23 @@ _print2fp(const void *buffer, size_t size, void *app_key) {
  */
 void ASN_DEBUG_f(const char *fmt, ...);
 void ASN_DEBUG_f(const char *fmt, ...) {
+#if _MSC_VER >= 1900
+	char buff[4096];
+// 	char * ptr = asn1dbgbuff;
+// 	int adi = asn_debug_indent;
+// 	while(adi--) *ptr++ = ' ';
+	va_list argptr;
+	va_start(argptr,fmt);
+	int n = _vsnprintf_s(buff, 4096, fmt, argptr);
+	va_end(argptr);
+	buff[n] = '\n';
+	buff[n+1] = '\0';
+	OutputDebugStringA(buff);
+#else
 	va_list ap;
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
 	fprintf(stderr, "\n");
 	va_end(ap);
+#endif
 }
