@@ -37,8 +37,13 @@
 #ifndef __cplusplus
 #define inline __inline
 #endif
-#ifndef	ASSUMESTDTYPES	/* Standard types have been defined elsewhere */
+#if _MSC_VER >= 1900
+# define ASSUMESTDTYPES 1
+#endif
 #define	ssize_t		SSIZE_T
+#ifdef	ASSUMESTDTYPES	/* Standard types have been defined elsewhere */
+#	include <stdint.h>
+#else
 typedef	char		int8_t;
 typedef	short		int16_t;
 typedef	int		int32_t;
