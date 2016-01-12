@@ -7,7 +7,7 @@
 
 #include <asn_application.h>
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -31,14 +31,16 @@ enum xer_pbd_rval {
 	XPBD_BODY_CONSUMED	/* Body is recognized and consumed */
 };
 typedef enum xer_pbd_rval (xer_primitive_body_decoder_f)
-	(asn_TYPE_descriptor_t *td, void *struct_ptr,
+	(Allocator * allocator, asn_TYPE_descriptor_t *td, void *struct_ptr,
 		const void *chunk_buf, size_t chunk_size);
 
 /*
  * Specific function to decode simple primitive types.
  * Also see xer_decode_general() in xer_decoder.h
  */
-asn_dec_rval_t xer_decode_primitive(asn_codec_ctx_t *opt_codec_ctx,
+asn_dec_rval_t xer_decode_primitive(
+	Allocator * allocator,
+	asn_codec_ctx_t *opt_codec_ctx,
 	asn_TYPE_descriptor_t *type_descriptor,
 	void **struct_ptr, size_t struct_size,
 	const char *opt_mname,
@@ -46,7 +48,7 @@ asn_dec_rval_t xer_decode_primitive(asn_codec_ctx_t *opt_codec_ctx,
 	xer_primitive_body_decoder_f *prim_body_decoder
 );
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

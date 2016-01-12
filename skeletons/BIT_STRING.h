@@ -7,7 +7,7 @@
 
 #include <OCTET_STRING.h>	/* Some help from OCTET STRING */
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -26,7 +26,7 @@ asn_struct_print_f BIT_STRING_print;	/* Human-readable output */
 asn_constr_check_f BIT_STRING_constraint;
 xer_type_encoder_f BIT_STRING_encode_xer;
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

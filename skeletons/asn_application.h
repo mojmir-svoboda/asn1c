@@ -11,7 +11,7 @@
 #include "asn_system.h"		/* for platform-dependent types */
 #include "asn_codecs.h"		/* for ASN.1 codecs specifics */
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -22,7 +22,7 @@ extern "C" {
  *  -1: Failed to consume bytes. Abort the mission.
  * Non-negative return values indicate success, and ignored.
  */
-typedef int (asn_app_consume_bytes_f)(const void *buffer, size_t size,
+typedef int (asn_app_consume_bytes_f)(Allocator * allocator, const void *buffer, size_t size,
 	void *application_specific_key);
 
 /*
@@ -38,7 +38,7 @@ typedef void (asn_app_constraint_failed_f)(void *application_specific_key,
 	const void *structure_which_failed_ptr,
 	const char *error_message_format, ...) GCC_PRINTFLIKE(4, 5);
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

@@ -27,7 +27,7 @@
  * The BER decoder of any type.
  */
 asn_dec_rval_t
-ber_decode(asn_codec_ctx_t *opt_codec_ctx,
+ber_decode(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx,
 	asn_TYPE_descriptor_t *type_descriptor,
 	void **struct_ptr, const void *ptr, size_t size) {
 	asn_codec_ctx_t s_codec_ctx;
@@ -51,7 +51,7 @@ ber_decode(asn_codec_ctx_t *opt_codec_ctx,
 	/*
 	 * Invoke type-specific decoder.
 	 */
-	return type_descriptor->ber_decoder(opt_codec_ctx, type_descriptor,
+	return type_descriptor->ber_decoder(allocator, opt_codec_ctx, type_descriptor,
 		struct_ptr,	/* Pointer to the destination structure */
 		ptr, size,	/* Buffer and its size */
 		0		/* Default tag mode is 0 */

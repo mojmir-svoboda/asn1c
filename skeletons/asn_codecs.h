@@ -6,7 +6,7 @@
 #ifndef	_ASN_CODECS_H_
 #define	_ASN_CODECS_H_
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -102,7 +102,7 @@ typedef struct asn_dec_rval_s {
 	return tmp_error;					\
 } while(0)
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

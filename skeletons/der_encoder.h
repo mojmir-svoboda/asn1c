@@ -7,7 +7,7 @@
 
 #include <asn_application.h>
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -25,6 +25,7 @@ asn_enc_rval_t der_encode(struct asn_TYPE_descriptor_s *type_descriptor,
 
 /* A variant of der_encode() which encodes data into the pre-allocated buffer */
 asn_enc_rval_t der_encode_to_buffer(
+		Allocator * allocator,
 		struct asn_TYPE_descriptor_s *type_descriptor,
 		void *struct_ptr,	/* Structure to be encoded */
 		void *buffer,		/* Pre-allocated buffer */
@@ -35,6 +36,7 @@ asn_enc_rval_t der_encode_to_buffer(
  * Type of the generic DER encoder.
  */
 typedef asn_enc_rval_t (der_type_encoder_f)(
+		Allocator * allocator,
 		struct asn_TYPE_descriptor_s *type_descriptor,
 		void *struct_ptr,	/* Structure to be encoded */
 		int tag_mode,		/* {-1,0,1}: IMPLICIT, no, EXPLICIT */
@@ -52,6 +54,7 @@ typedef asn_enc_rval_t (der_type_encoder_f)(
  * Write out leading TL[v] sequence according to the type definition.
  */
 ssize_t der_write_tags(
+		Allocator * allocator,
 		struct asn_TYPE_descriptor_s *type_descriptor,
 		size_t struct_length,
 		int tag_mode,		/* {-1,0,1}: IMPLICIT, no, EXPLICIT */
@@ -61,7 +64,7 @@ ssize_t der_write_tags(
 		void *app_key
 	);
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

@@ -8,7 +8,7 @@
 #include <asn_application.h>
 #include <asn_codecs_prim.h>
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -54,8 +54,8 @@ per_type_encoder_f INTEGER_encode_uper;
  */
 int asn_INTEGER2long(const INTEGER_t *i, long *l);
 int asn_INTEGER2ulong(const INTEGER_t *i, unsigned long *l);
-int asn_long2INTEGER(INTEGER_t *i, long l);
-int asn_ulong2INTEGER(INTEGER_t *i, unsigned long l);
+int asn_long2INTEGER(Allocator * allocator, INTEGER_t *i, long l);
+int asn_ulong2INTEGER(Allocator * allocator, INTEGER_t *i, unsigned long l);
 
 /* A a reified version of strtol(3) with nicer error reporting. */
 enum asn_strtol_result_e {
@@ -75,7 +75,7 @@ enum asn_strtol_result_e asn_strtol(const char *str, const char *end, long *l);
  */
 const asn_INTEGER_enum_map_t *INTEGER_map_value2enum(asn_INTEGER_specifics_t *specs, long value);
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

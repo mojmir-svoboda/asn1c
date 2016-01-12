@@ -15,7 +15,7 @@
 #include <assert.h>		/* for assert() macro */
 #endif
 
-#ifdef	__cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -23,16 +23,18 @@ extern "C" {
 #define	ASN1C_ENVIRONMENT_VERSION	923	/* Compile-time version */
 int get_asn1c_environment_version(void);	/* Run-time version */
 
-#if defined EXTERNAL_ALLOCATOR_FUNCS
-	extern void * CALLOC(size_t count, size_t size);
-	extern void * MALLOC(size_t size);
-	extern void * REALLOC(void * mem, size_t old_size, size_t size);
-	extern void  FREEMEM(void * mem);
-#else
-#	define	CALLOC(nmemb, size)	calloc(nmemb, size)
-#	define	MALLOC(size)		malloc(size)
-#	define	REALLOC(oldptr, oldsize, newsize)	realloc(oldptr, newsize)
-#	define	FREEMEM(ptr)		free(ptr)
+#if !defined USE_CXX_ALLOCATOR
+#	if defined EXTERNAL_ALLOCATOR_FUNCS
+		extern void * CALLOC(size_t count, size_t size);
+		extern void * MALLOC(size_t size);
+		extern void * REALLOC(void * mem, size_t old_size, size_t size);
+		extern void  FREEMEM(void * mem);
+#	else
+#		define	CALLOC(nmemb, size)	calloc(nmemb, size)
+#		define	MALLOC(size)		malloc(size)
+#		define	REALLOC(oldptr, oldsize, newsize)	realloc(oldptr, newsize)
+#		define	FREEMEM(ptr)		free(ptr)
+#	endif
 #endif
 
 #define	asn_debug_indent	0
@@ -73,35 +75,35 @@ static inline void ASN_DEBUG(const char *fmt, ...) { (void)fmt; }
 /*
  * Invoke the application-supplied callback and fail, if something is wrong.
  */
-#define	__ASN_E_cbc(buf, size)	(cb((buf), (size), app_key) < 0)
+#define	__ASN_E_cbc(alloc, buf, size)	(cb(alloc, (buf), (size), app_key) < 0)
 #define	_ASN_E_CALLBACK(foo)	do {					\
 		if(foo)	goto cb_failed;					\
 	} while(0)
-#define	_ASN_CALLBACK(buf, size)					\
-	_ASN_E_CALLBACK(__ASN_E_cbc(buf, size))
-#define	_ASN_CALLBACK2(buf1, size1, buf2, size2)			\
-	_ASN_E_CALLBACK(__ASN_E_cbc(buf1, size1) || __ASN_E_cbc(buf2, size2))
-#define	_ASN_CALLBACK3(buf1, size1, buf2, size2, buf3, size3)		\
-	_ASN_E_CALLBACK(__ASN_E_cbc(buf1, size1)			\
-		|| __ASN_E_cbc(buf2, size2)				\
-		|| __ASN_E_cbc(buf3, size3))
+#define	_ASN_CALLBACK(alloc, buf, size)					\
+	_ASN_E_CALLBACK(__ASN_E_cbc(alloc, buf, size))
+#define	_ASN_CALLBACK2(alloc, buf1, size1, buf2, size2)			\
+	_ASN_E_CALLBACK(__ASN_E_cbc(alloc, buf1, size1) || __ASN_E_cbc(alloc, buf2, size2))
+#define	_ASN_CALLBACK3(alloc, buf1, size1, buf2, size2, buf3, size3)		\
+	_ASN_E_CALLBACK(__ASN_E_cbc(alloc, buf1, size1)			\
+		|| __ASN_E_cbc(alloc, buf2, size2)				\
+		|| __ASN_E_cbc(alloc, buf3, size3))
 
-#define	_i_ASN_TEXT_INDENT(nl, level) do {				\
+#define	_i_ASN_TEXT_INDENT(alloc, nl, level) do {				\
 	int __level = (level);						\
 	int __nl = ((nl) != 0);						\
 	int __i;							\
-	if(__nl) _ASN_CALLBACK("\n", 1);				\
+	if(__nl) _ASN_CALLBACK(alloc, "\n", 1);				\
 	if(__level < 0) __level = 0;					\
 	for(__i = 0; __i < __level; __i++)				\
-		_ASN_CALLBACK("    ", 4);				\
+		_ASN_CALLBACK(alloc, "    ", 4);				\
 	er.encoded += __nl + 4 * __level;				\
 } while(0)
 
-#define	_i_INDENT(nl)	do {						\
+#define	_i_INDENT(alloc, nl)	do {						\
 	int __i;							\
-	if((nl) && cb("\n", 1, app_key) < 0) return -1;			\
+	if((nl) && cb(alloc, "\n", 1, app_key) < 0) return -1;			\
 	for(__i = 0; __i < ilevel; __i++)				\
-		if(cb("    ", 4, app_key) < 0) return -1;		\
+		if(cb(alloc, "    ", 4, app_key) < 0) return -1;		\
 } while(0)
 
 /*
@@ -126,7 +128,7 @@ _ASN_STACK_OVERFLOW_CHECK(asn_codec_ctx_t *ctx) {
 	return 0;
 }
 
-#ifdef	__cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

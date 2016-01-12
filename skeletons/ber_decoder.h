@@ -7,7 +7,7 @@
 
 #include <asn_application.h>
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -19,7 +19,9 @@ struct asn_codec_ctx_s;		/* Forward declaration */
  * This function may be invoked directly from the application.
  * The der_encode() function (der_encoder.h) is an opposite to ber_decode().
  */
-asn_dec_rval_t ber_decode(struct asn_codec_ctx_s *opt_codec_ctx,
+asn_dec_rval_t ber_decode(
+	Allocator * allocator,
+	struct asn_codec_ctx_s *opt_codec_ctx,
 	struct asn_TYPE_descriptor_s *type_descriptor,
 	void **struct_ptr,	/* Pointer to a target structure's pointer */
 	const void *buffer,	/* Data to be decoded */
@@ -30,6 +32,7 @@ asn_dec_rval_t ber_decode(struct asn_codec_ctx_s *opt_codec_ctx,
  * Type of generic function which decodes the byte stream into the structure.
  */
 typedef asn_dec_rval_t (ber_type_decoder_f)(
+		Allocator * allocator,
 		struct asn_codec_ctx_s *opt_codec_ctx,
 		struct asn_TYPE_descriptor_s *type_descriptor,
 		void **struct_ptr, const void *buf_ptr, size_t size,
@@ -57,7 +60,7 @@ asn_dec_rval_t ber_check_tags(
 		int *opt_tlv_form	/* optional tag form */
 	);
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

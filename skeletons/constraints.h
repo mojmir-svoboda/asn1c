@@ -7,7 +7,7 @@
 
 #include <asn_system.h>		/* Platform-dependent types */
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -56,7 +56,7 @@ asn_constr_check_f asn_generic_unknown_constraint; /* Not fully supported */
  */
 #define	_ASN_CTFAIL	if(ctfailcb) ctfailcb
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

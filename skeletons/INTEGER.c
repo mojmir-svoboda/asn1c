@@ -45,7 +45,7 @@ asn_TYPE_descriptor_t asn_DEF_INTEGER = {
  * Encode INTEGER type using DER.
  */
 asn_enc_rval_t
-INTEGER_encode_der(asn_TYPE_descriptor_t *td, void *sptr,
+INTEGER_encode_der(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr,
 	int tag_mode, ber_tlv_tag_t tag,
 	asn_app_consume_bytes_f *cb, void *app_key) {
 	INTEGER_t *st = (INTEGER_t *)sptr;
@@ -97,7 +97,7 @@ INTEGER_encode_der(asn_TYPE_descriptor_t *td, void *sptr,
 
 	} /* if(1) */
 
-	return der_encode_primitive(td, sptr, tag_mode, tag, cb, app_key);
+	return der_encode_primitive(allocator, td, sptr, tag_mode, tag, cb, app_key);
 }
 
 static const asn_INTEGER_enum_map_t *INTEGER_map_enum2value(asn_INTEGER_specifics_t *specs, const char *lstart, const char *lstop);
@@ -106,7 +106,7 @@ static const asn_INTEGER_enum_map_t *INTEGER_map_enum2value(asn_INTEGER_specific
  * INTEGER specific human-readable output.
  */
 static ssize_t
-INTEGER__dump(const asn_TYPE_descriptor_t *td, const INTEGER_t *st, asn_app_consume_bytes_f *cb, void *app_key, int plainOrXER) {
+INTEGER__dump(Allocator * allocator, const asn_TYPE_descriptor_t *td, const INTEGER_t *st, asn_app_consume_bytes_f *cb, void *app_key, int plainOrXER) {
 	asn_INTEGER_specifics_t *specs=(asn_INTEGER_specifics_t *)td->specifics;
 	char scratch[32];	/* Enough for 64-bit integer */
 	uint8_t *buf = st->buf;
@@ -151,7 +151,7 @@ INTEGER__dump(const asn_TYPE_descriptor_t *td, const INTEGER_t *st, asn_app_cons
 				?"%lu":"%ld", value);
 		}
 		assert(ret > 0 && (size_t)ret < scrsize);
-		return (cb(scr, ret, app_key) < 0) ? -1 : ret;
+		return (cb(allocator, scr, ret, app_key) < 0) ? -1 : ret;
 	} else if(plainOrXER && specs && specs->strict_enumeration) {
 		/*
 		 * Here and earlier, we cannot encode the ENUMERATED values
@@ -169,7 +169,7 @@ INTEGER__dump(const asn_TYPE_descriptor_t *td, const INTEGER_t *st, asn_app_cons
 		const char * const h2c = "0123456789ABCDEF";
 		if((p - scratch) >= (ssize_t)(sizeof(scratch) - 4)) {
 			/* Flush buffer */
-			if(cb(scratch, p - scratch, app_key) < 0)
+			if(cb(allocator, scratch, p - scratch, app_key) < 0)
 				return -1;
 			wrote += p - scratch;
 			p = scratch;
@@ -182,14 +182,14 @@ INTEGER__dump(const asn_TYPE_descriptor_t *td, const INTEGER_t *st, asn_app_cons
 		p--;	/* Remove the last ":" */
 
 	wrote += p - scratch;
-	return (cb(scratch, p - scratch, app_key) < 0) ? -1 : wrote;
+	return (cb(allocator, scratch, p - scratch, app_key) < 0) ? -1 : wrote;
 }
 
 /*
  * INTEGER specific human-readable output.
  */
 int
-INTEGER_print(asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
+INTEGER_print(Allocator * allocator, asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
 	asn_app_consume_bytes_f *cb, void *app_key) {
 	const INTEGER_t *st = (const INTEGER_t *)sptr;
 	ssize_t ret;
@@ -198,9 +198,9 @@ INTEGER_print(asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
 	(void)ilevel;
 
 	if(!st || !st->buf)
-		ret = cb("<absent>", 8, app_key);
+		ret = cb(allocator, "<absent>", 8, app_key);
 	else
-		ret = INTEGER__dump(td, st, cb, app_key, 0);
+		ret = INTEGER__dump(allocator, td, st, cb, app_key, 0);
 
 	return (ret < 0) ? -1 : 0;
 }
@@ -288,13 +288,13 @@ INTEGER_map_value2enum(asn_INTEGER_specifics_t *specs, long value) {
 }
 
 static int
-INTEGER_st_prealloc(INTEGER_t *st, int min_size) {
-	void *p = MALLOC(min_size + 1);
+INTEGER_st_prealloc(Allocator * allocator, INTEGER_t *st, int min_size) {
+	void *p = CXX_ALLOC_WRAP MALLOC(min_size + 1);
 	if(p) {
 		void *b = st->buf;
 		st->size = 0;
 		st->buf = (uint8_t *)p;
-		FREEMEM(b);
+		CXX_ALLOC_WRAP FREEMEM(b);
 		return 0;
 	} else {
 		return -1;
@@ -305,7 +305,7 @@ INTEGER_st_prealloc(INTEGER_t *st, int min_size) {
  * Decode the chunk of XML text encoding INTEGER.
  */
 static enum xer_pbd_rval
-INTEGER__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chunk_buf, size_t chunk_size) {
+INTEGER__xer_body_decode(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr, const void *chunk_buf, size_t chunk_size) {
 	INTEGER_t *st = (INTEGER_t *)sptr;
 	long dec_value;
 	long hex_value = 0;
@@ -332,7 +332,7 @@ INTEGER__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chun
 		ASN_DEBUG("INTEGER body %ld 0x%2x..0x%2x",
 			(long)chunk_size, *lstart, lstop[-1]);
 
-	if(INTEGER_st_prealloc(st, (chunk_size/3) + 1))
+	if(INTEGER_st_prealloc(allocator, st, (chunk_size/3) + 1))
 		return XPBD_SYSTEM_FAILURE;
 
 	/*
@@ -517,24 +517,24 @@ INTEGER__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chun
 	 * Convert the result of parsing of enumeration or a straight
 	 * decimal value into a BER representation.
 	 */
-	if(asn_long2INTEGER(st, dec_value))
+	if(asn_long2INTEGER(allocator, st, dec_value))
 		return XPBD_SYSTEM_FAILURE;
 
 	return XPBD_BODY_CONSUMED;
 }
 
 asn_dec_rval_t
-INTEGER_decode_xer(asn_codec_ctx_t *opt_codec_ctx,
+INTEGER_decode_xer(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx,
 	asn_TYPE_descriptor_t *td, void **sptr, const char *opt_mname,
 		const void *buf_ptr, size_t size) {
 
-	return xer_decode_primitive(opt_codec_ctx, td,
+	return xer_decode_primitive(allocator, opt_codec_ctx, td,
 		sptr, sizeof(INTEGER_t), opt_mname,
 		buf_ptr, size, INTEGER__xer_body_decode);
 }
 
 asn_enc_rval_t
-INTEGER_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
+INTEGER_encode_xer(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr,
 	int ilevel, enum xer_encoder_flags_e flags,
 		asn_app_consume_bytes_f *cb, void *app_key) {
 	const INTEGER_t *st = (const INTEGER_t *)sptr;
@@ -546,7 +546,7 @@ INTEGER_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
 	if(!st || !st->buf)
 		_ASN_ENCODE_FAILED;
 
-	er.encoded = INTEGER__dump(td, st, cb, app_key, 1);
+	er.encoded = INTEGER__dump(allocator, td, st, cb, app_key, 1);
 	if(er.encoded < 0) _ASN_ENCODE_FAILED;
 
 	_ASN_ENCODED_OK(er);
@@ -555,7 +555,7 @@ INTEGER_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
 #ifndef	ASN_DISABLE_PER_SUPPORT
 
 asn_dec_rval_t
-INTEGER_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
+INTEGER_decode_uper(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	asn_per_constraints_t *constraints, void **sptr, asn_per_data_t *pd) {
 	asn_INTEGER_specifics_t *specs=(asn_INTEGER_specifics_t *)td->specifics;
 	asn_dec_rval_t rval = { RC_OK, 0 };
@@ -566,7 +566,7 @@ INTEGER_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	(void)opt_codec_ctx;
 
 	if(!st) {
-		st = (INTEGER_t *)(*sptr = CALLOC(1, sizeof(*st)));
+		st = (INTEGER_t *)(*sptr = CXX_ALLOC_WRAP CALLOC(1, sizeof(*st)));
 		if(!st) _ASN_DECODE_FAILED;
 	}
 
@@ -579,17 +579,17 @@ INTEGER_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 		if(inext) ct = 0;
 	}
 
-	FREEMEM(st->buf);
+	CXX_ALLOC_WRAP FREEMEM(st->buf);
 	st->buf = 0;
 	st->size = 0;
 	if(ct) {
 		if(ct->flags & asn_per_constraint_s::APC_SEMI_CONSTRAINED) {
-			st->buf = (uint8_t *)CALLOC(1, 2);
+			st->buf = (uint8_t *)CXX_ALLOC_WRAP CALLOC(1, 2);
 			if(!st->buf) _ASN_DECODE_FAILED;
 			st->size = 1;
 		} else if(ct->flags & asn_per_constraint_s::APC_CONSTRAINED && ct->range_bits >= 0) {
 			size_t size = (ct->range_bits + 7) >> 3;
-			st->buf = (uint8_t *)MALLOC(1 + size + 1);
+			st->buf = (uint8_t *)CXX_ALLOC_WRAP MALLOC(1 + size + 1);
 			if(!st->buf) _ASN_DECODE_FAILED;
 			st->size = size;
 		}
@@ -611,7 +611,7 @@ INTEGER_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 				ASN_DEBUG("Got value %lu + low %ld",
 					uvalue, ct->lower_bound);
 				uvalue += ct->lower_bound;
-				if(asn_ulong2INTEGER(st, uvalue))
+				if(asn_ulong2INTEGER(allocator, st, uvalue))
 					_ASN_DECODE_FAILED;
 			} else {
 				unsigned long svalue;
@@ -621,7 +621,7 @@ INTEGER_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 				ASN_DEBUG("Got value %ld + low %ld",
 					svalue, ct->lower_bound);
 				svalue += ct->lower_bound;
-				if(asn_long2INTEGER(st, svalue))
+				if(asn_long2INTEGER(allocator, st, svalue))
 					_ASN_DECODE_FAILED;
 			}
 			return rval;
@@ -640,7 +640,7 @@ INTEGER_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 		len = uper_get_length(pd, -1, &repeat);
 		if(len < 0) _ASN_DECODE_STARVED;
 
-		p = REALLOC(st->buf, st->size, st->size + len + 1);
+		p = CXX_ALLOC_WRAP REALLOC(st->buf, st->size, st->size + len + 1);
 		if(!p) _ASN_DECODE_FAILED;
 		st->buf = (uint8_t *)p;
 
@@ -658,7 +658,7 @@ INTEGER_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 		long value;
 		if(asn_INTEGER2long(st, &value))
 			_ASN_DECODE_FAILED;
-		if(asn_long2INTEGER(st, value + ct->lower_bound))
+		if(asn_long2INTEGER(allocator, st, value + ct->lower_bound))
 			_ASN_DECODE_FAILED;
 	}
 
@@ -666,7 +666,7 @@ INTEGER_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 }
 
 asn_enc_rval_t
-INTEGER_encode_uper(asn_TYPE_descriptor_t *td,
+INTEGER_encode_uper(Allocator * allocator, asn_TYPE_descriptor_t *td,
 	asn_per_constraints_t *constraints, void *sptr, asn_per_outp_t *po) {
 	asn_INTEGER_specifics_t *specs=(asn_INTEGER_specifics_t *)td->specifics;
 	asn_enc_rval_t er;
@@ -722,7 +722,7 @@ INTEGER_encode_uper(asn_TYPE_descriptor_t *td,
 				inext ? "ext" : "fix");
 		}
 		if(ct->flags & asn_per_constraint_s::APC_EXTENSIBLE) {
-			if(per_put_few_bits(po, inext, 1))
+			if(per_put_few_bits(allocator, po, inext, 1))
 				_ASN_ENCODE_FAILED;
 			if(inext) ct = 0;
 		} else if(inext) {
@@ -737,7 +737,7 @@ INTEGER_encode_uper(asn_TYPE_descriptor_t *td,
 		ASN_DEBUG("Encoding integer %ld (%lu) with range %d bits",
 			value, value - ct->lower_bound, ct->range_bits);
 		v = value - ct->lower_bound;
-		if(uper_put_constrained_whole_number_u(po, v, ct->range_bits))
+		if(uper_put_constrained_whole_number_u(allocator, po, v, ct->range_bits))
 			_ASN_ENCODE_FAILED;
 		_ASN_ENCODED_OK(er);
 	}
@@ -749,10 +749,10 @@ INTEGER_encode_uper(asn_TYPE_descriptor_t *td,
 	}
 
 	for(buf = st->buf, end = st->buf + st->size; buf < end;) {
-		ssize_t mayEncode = uper_put_length(po, end - buf);
+		ssize_t mayEncode = uper_put_length(allocator, po, end - buf);
 		if(mayEncode < 0)
 			_ASN_ENCODE_FAILED;
-		if(per_put_many_bits(po, buf, 8 * mayEncode))
+		if(per_put_many_bits(allocator, po, buf, 8 * mayEncode))
 			_ASN_ENCODE_FAILED;
 		buf += mayEncode;
 	}
@@ -855,16 +855,16 @@ asn_INTEGER2ulong(const INTEGER_t *iptr, unsigned long *lptr) {
 }
 
 int
-asn_ulong2INTEGER(INTEGER_t *st, unsigned long value) {
+asn_ulong2INTEGER(Allocator * allocator, INTEGER_t *st, unsigned long value) {
 	uint8_t *buf;
 	uint8_t *end;
 	uint8_t *b;
 	int shr;
 
 	if(value <= LONG_MAX)
-		return asn_long2INTEGER(st, value);
+		return asn_long2INTEGER(allocator, st, value);
 
-	buf = (uint8_t *)MALLOC(1 + sizeof(value));
+	buf = (uint8_t *)CXX_ALLOC_WRAP MALLOC(1 + sizeof(value));
 	if(!buf) return -1;
 
 	end = buf + (sizeof(value) + 1);
@@ -872,7 +872,7 @@ asn_ulong2INTEGER(INTEGER_t *st, unsigned long value) {
 	for(b = buf + 1, shr = (sizeof(long)-1)*8; b < end; shr -= 8, b++)
 		*b = (uint8_t)(value >> shr);
 
-	if(st->buf) FREEMEM(st->buf);
+	if(st->buf) CXX_ALLOC_WRAP FREEMEM(st->buf);
 	st->buf = buf;
 	st->size = 1 + sizeof(value);
 
@@ -880,7 +880,7 @@ asn_ulong2INTEGER(INTEGER_t *st, unsigned long value) {
 }
 
 int
-asn_long2INTEGER(INTEGER_t *st, long value) {
+asn_long2INTEGER(Allocator * allocator, INTEGER_t *st, long value) {
 	uint8_t *buf, *bp;
 	uint8_t *p;
 	uint8_t *pstart;
@@ -893,7 +893,7 @@ asn_long2INTEGER(INTEGER_t *st, long value) {
 		return -1;
 	}
 
-	buf = (uint8_t *)MALLOC(sizeof(value));
+	buf = (uint8_t *)CXX_ALLOC_WRAP MALLOC(sizeof(value));
 	if(!buf) return -1;
 
 	if(*(char *)&littleEndian) {
@@ -927,7 +927,7 @@ asn_long2INTEGER(INTEGER_t *st, long value) {
 	for(pstart = p, bp = buf, pend1 += add; p != pend1; p += add)
 		*bp++ = *p;
 
-	if(st->buf) FREEMEM(st->buf);
+	if(st->buf) CXX_ALLOC_WRAP FREEMEM(st->buf);
 	st->buf = buf;
 	st->size = bp - buf;
 

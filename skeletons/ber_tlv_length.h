@@ -5,7 +5,7 @@
 #ifndef	_BER_TLV_LENGTH_H_
 #define	_BER_TLV_LENGTH_H_
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -43,7 +43,7 @@ ssize_t ber_skip_length(
  */
 size_t der_tlv_length_serialize(ber_tlv_len_t len, void *bufptr, size_t size);
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

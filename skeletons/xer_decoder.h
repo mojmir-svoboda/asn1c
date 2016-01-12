@@ -7,7 +7,7 @@
 
 #include <asn_application.h>
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -26,7 +26,9 @@ asn_dec_rval_t xer_decode(struct asn_codec_ctx_s *opt_codec_ctx,
 /*
  * Type of the type-specific XER decoder function.
  */
-typedef asn_dec_rval_t (xer_type_decoder_f)(asn_codec_ctx_t *opt_codec_ctx,
+typedef asn_dec_rval_t (xer_type_decoder_f)(
+		Allocator * allocator,
+		asn_codec_ctx_t *opt_codec_ctx,
 		struct asn_TYPE_descriptor_s *type_descriptor,
 		void **struct_ptr,
 		const char *opt_mname,	/* Member name */
@@ -43,15 +45,15 @@ typedef asn_dec_rval_t (xer_type_decoder_f)(asn_codec_ctx_t *opt_codec_ctx,
  * and others. This function should not be used by applications, as its API
  * is subject to changes.
  */
-asn_dec_rval_t xer_decode_general(asn_codec_ctx_t *opt_codec_ctx,
+asn_dec_rval_t xer_decode_general(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx,
 	asn_struct_ctx_t *ctx,	/* Type decoder context */
 	void *struct_key,	/* Treated as opaque pointer */
 	const char *xml_tag,	/* Expected XML tag name */
 	const void *buf_ptr, size_t size,
 	int (*opt_unexpected_tag_decoder)
-		(void *struct_key, const void *chunk_buf, size_t chunk_size),
+		(Allocator * allocator, void *struct_key, const void *chunk_buf, size_t chunk_size),
 	ssize_t (*body_receiver)
-		(void *struct_key, const void *chunk_buf, size_t chunk_size,
+		(Allocator * allocator, void *struct_key, const void *chunk_buf, size_t chunk_size,
 			int have_more)
 	);
 
@@ -98,7 +100,7 @@ size_t xer_whitespace_span(const void *chunk_buf, size_t chunk_size);
  */
 int xer_skip_unknown(xer_check_tag_e tcv, ber_tlv_len_t *depth);
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

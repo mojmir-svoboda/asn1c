@@ -8,7 +8,7 @@
 
 #include <asn_system.h>		/* Platform-specific types */
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -48,7 +48,7 @@ typedef int (pxml_callback_f)(pxml_chunk_type_e _type,
 ssize_t pxml_parse(int *_stateContext, const void *_buf, size_t _size,
 	pxml_callback_f *cb, void *_key);
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

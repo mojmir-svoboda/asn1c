@@ -7,7 +7,7 @@
 
 #include <asn_application.h>
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -23,7 +23,7 @@ enum xer_encoder_flags_e {
 /*
  * The XER encoder of any type. May be invoked by the application.
  */
-asn_enc_rval_t xer_encode(struct asn_TYPE_descriptor_s *type_descriptor,
+asn_enc_rval_t xer_encode(Allocator * allocator, struct asn_TYPE_descriptor_s *type_descriptor,
 		void *struct_ptr,	/* Structure to be encoded */
 		enum xer_encoder_flags_e xer_flags,
 		asn_app_consume_bytes_f *consume_bytes_cb,
@@ -44,6 +44,7 @@ int xer_fprint(FILE *stream, struct asn_TYPE_descriptor_s *td, void *sptr);
  * Type of the generic XER encoder.
  */
 typedef asn_enc_rval_t (xer_type_encoder_f)(
+		Allocator * allocator,
 		struct asn_TYPE_descriptor_s *type_descriptor,
 		void *struct_ptr,	/* Structure to be encoded */
 		int ilevel,		/* Level of indentation */
@@ -52,7 +53,7 @@ typedef asn_enc_rval_t (xer_type_encoder_f)(
 		void *app_key		/* Arbitrary callback argument */
 	);
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

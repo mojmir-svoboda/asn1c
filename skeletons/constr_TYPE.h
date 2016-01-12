@@ -15,7 +15,7 @@
 #include <ber_tlv_length.h>
 #include <ber_tlv_tag.h>
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -51,16 +51,18 @@ typedef struct asn_struct_ctx_s {
  * dynamically.)
  */
 typedef void (asn_struct_free_f)(
+		Allocator * allocator,
 		struct asn_TYPE_descriptor_s *type_descriptor,
 		void *struct_ptr, int free_contents_only);
-#define	ASN_STRUCT_FREE(asn_DEF, ptr)	(asn_DEF).free_struct(&(asn_DEF),ptr,0)
-#define	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF, ptr)	\
-					(asn_DEF).free_struct(&(asn_DEF),ptr,1)
+#define	ASN_STRUCT_FREE(alloc, asn_DEF, ptr)	(asn_DEF).free_struct(alloc, &(asn_DEF),ptr,0)
+#define	ASN_STRUCT_FREE_CONTENTS_ONLY(alloc, asn_DEF, ptr)	\
+					(asn_DEF).free_struct(alloc, &(asn_DEF),ptr,1)
 
 /*
  * Print the structure according to its specification.
  */
 typedef int (asn_struct_print_f)(
+		Allocator * allocator,
 		struct asn_TYPE_descriptor_s *type_descriptor,
 		const void *struct_ptr,
 		int level,	/* Indentation level */
@@ -146,7 +148,7 @@ typedef struct asn_TYPE_member_s {
 	asn_TYPE_descriptor_t *type;	/* Member type descriptor */
 	asn_constr_check_f *memb_constraints;	/* Constraints validator */
 	asn_per_constraints_t *per_constraints;	/* PER compiled constraints */
-	int (*default_value)(int setval, void **sptr);	/* DEFAULT <value> */
+	int (*default_value)(Allocator * alloc, int setval, void **sptr);	/* DEFAULT <value> */
 	const char *name;			/* ASN.1 identifier of the element */
 } asn_TYPE_member_t;
 
@@ -173,7 +175,7 @@ int asn_fprint(FILE *stream,		/* Destination stream descriptor */
 	asn_TYPE_descriptor_t *td,	/* ASN.1 type descriptor */
 	const void *struct_ptr);	/* Structure to be printed */
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

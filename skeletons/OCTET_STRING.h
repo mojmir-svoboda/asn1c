@@ -7,7 +7,7 @@
 
 #include <asn_application.h>
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -46,7 +46,7 @@ per_type_encoder_f OCTET_STRING_encode_uper;
  * current contents of the OCTET STRING.
  * Returns 0 if it was possible to perform operation, -1 otherwise.
  */
-int OCTET_STRING_fromBuf(OCTET_STRING_t *s, const char *str, int size);
+int OCTET_STRING_fromBuf(Allocator * allocator, OCTET_STRING_t *s, const char *str, int size);
 
 /* Handy conversion from the C string into the OCTET STRING. */
 #define	OCTET_STRING_fromString(s, str)	OCTET_STRING_fromBuf(s, str, -1)
@@ -79,7 +79,7 @@ typedef const struct asn_OCTET_STRING_specifics_s {
 	} subvariant;
 } asn_OCTET_STRING_specifics_t;
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

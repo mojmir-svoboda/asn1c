@@ -38,7 +38,7 @@ asn_TYPE_descriptor_t asn_DEF_BOOLEAN = {
  * Decode BOOLEAN type.
  */
 asn_dec_rval_t
-BOOLEAN_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
+BOOLEAN_decode_ber(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx,
 		asn_TYPE_descriptor_t *td,
 		void **bool_value, const void *buf_ptr, size_t size,
 		int tag_mode) {
@@ -48,7 +48,7 @@ BOOLEAN_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 	ber_tlv_len_t lidx;
 
 	if(st == NULL) {
-		st = (BOOLEAN_t *)(*bool_value = CALLOC(1, sizeof(*st)));
+		st = (BOOLEAN_t *)(*bool_value = CXX_ALLOC_WRAP CALLOC(1, sizeof(*st)));
 		if(st == NULL) {
 			rval.code = RC_FAIL;
 			rval.consumed = 0;
@@ -101,13 +101,13 @@ BOOLEAN_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 }
 
 asn_enc_rval_t
-BOOLEAN_encode_der(asn_TYPE_descriptor_t *td, void *sptr,
+BOOLEAN_encode_der(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr,
 	int tag_mode, ber_tlv_tag_t tag,
 	asn_app_consume_bytes_f *cb, void *app_key) {
 	asn_enc_rval_t erval;
 	BOOLEAN_t *st = (BOOLEAN_t *)sptr;
 
-	erval.encoded = der_write_tags(td, 1, tag_mode, 0, tag, cb, app_key);
+	erval.encoded = der_write_tags(allocator, td, 1, tag_mode, 0, tag, cb, app_key);
 	if(erval.encoded == -1) {
 		erval.failed_type = td;
 		erval.structure_ptr = sptr;
@@ -119,7 +119,7 @@ BOOLEAN_encode_der(asn_TYPE_descriptor_t *td, void *sptr,
 
 		bool_value = *st ? 0xff : 0; /* 0xff mandated by DER */
 
-		if(cb(&bool_value, 1, app_key) < 0) {
+		if(cb(allocator, &bool_value, 1, app_key) < 0) {
 			erval.encoded = -1;
 			erval.failed_type = td;
 			erval.structure_ptr = sptr;
@@ -137,7 +137,7 @@ BOOLEAN_encode_der(asn_TYPE_descriptor_t *td, void *sptr,
  * Decode the chunk of XML text encoding INTEGER.
  */
 static enum xer_pbd_rval
-BOOLEAN__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chunk_buf, size_t chunk_size) {
+BOOLEAN__xer_body_decode(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr, const void *chunk_buf, size_t chunk_size) {
 	BOOLEAN_t *st = (BOOLEAN_t *)sptr;
 	const char *p = (const char *)chunk_buf;
 
@@ -167,17 +167,17 @@ BOOLEAN__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chun
 
 
 asn_dec_rval_t
-BOOLEAN_decode_xer(asn_codec_ctx_t *opt_codec_ctx,
+BOOLEAN_decode_xer(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx,
 	asn_TYPE_descriptor_t *td, void **sptr, const char *opt_mname,
 		const void *buf_ptr, size_t size) {
 
-	return xer_decode_primitive(opt_codec_ctx, td,
+	return xer_decode_primitive(allocator, opt_codec_ctx, td,
 		sptr, sizeof(BOOLEAN_t), opt_mname, buf_ptr, size,
 		BOOLEAN__xer_body_decode);
 }
 
 asn_enc_rval_t
-BOOLEAN_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
+BOOLEAN_encode_xer(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr,
 	int ilevel, enum xer_encoder_flags_e flags,
 		asn_app_consume_bytes_f *cb, void *app_key) {
 	const BOOLEAN_t *st = (const BOOLEAN_t *)sptr;
@@ -189,10 +189,10 @@ BOOLEAN_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
 	if(!st) _ASN_ENCODE_FAILED;
 
 	if(*st) {
-		_ASN_CALLBACK("<true/>", 7);
+		_ASN_CALLBACK(allocator, "<true/>", 7);
 		er.encoded = 7;
 	} else {
-		_ASN_CALLBACK("<false/>", 8);
+		_ASN_CALLBACK(allocator, "<false/>", 8);
 		er.encoded = 8;
 	}
 
@@ -202,7 +202,7 @@ cb_failed:
 }
 
 int
-BOOLEAN_print(asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
+BOOLEAN_print(Allocator * allocator, asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
 	asn_app_consume_bytes_f *cb, void *app_key) {
 	const BOOLEAN_t *st = (const BOOLEAN_t *)sptr;
 	const char *buf;
@@ -224,18 +224,18 @@ BOOLEAN_print(asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
 		buflen = 8;
 	}
 
-	return (cb(buf, buflen, app_key) < 0) ? -1 : 0;
+	return (cb(allocator, buf, buflen, app_key) < 0) ? -1 : 0;
 }
 
 void
-BOOLEAN_free(asn_TYPE_descriptor_t *td, void *ptr, int contents_only) {
+BOOLEAN_free(Allocator * allocator, asn_TYPE_descriptor_t *td, void *ptr, int contents_only) {
 	if(td && ptr && !contents_only) {
-		FREEMEM(ptr);
+		CXX_ALLOC_WRAP FREEMEM(ptr);
 	}
 }
 
 asn_dec_rval_t
-BOOLEAN_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
+BOOLEAN_decode_uper(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	asn_per_constraints_t *constraints, void **sptr, asn_per_data_t *pd) {
 	asn_dec_rval_t rv;
 	BOOLEAN_t *st = (BOOLEAN_t *)*sptr;
@@ -244,7 +244,7 @@ BOOLEAN_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	(void)constraints;
 
 	if(!st) {
-		st = (BOOLEAN_t *)(*sptr = MALLOC(sizeof(*st)));
+		st = (BOOLEAN_t *)(*sptr = CXX_ALLOC_WRAP MALLOC(sizeof(*st)));
 		if(!st) _ASN_DECODE_FAILED;
 	}
 
@@ -266,7 +266,7 @@ BOOLEAN_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 
 
 asn_enc_rval_t
-BOOLEAN_encode_uper(asn_TYPE_descriptor_t *td,
+BOOLEAN_encode_uper(Allocator * allocator, asn_TYPE_descriptor_t *td,
 	asn_per_constraints_t *constraints, void *sptr, asn_per_outp_t *po) {
 	const BOOLEAN_t *st = (const BOOLEAN_t *)sptr;
 	asn_enc_rval_t er = { 0, 0, 0 };
@@ -275,7 +275,7 @@ BOOLEAN_encode_uper(asn_TYPE_descriptor_t *td,
 
 	if(!st) _ASN_ENCODE_FAILED;
 
-	if(per_put_few_bits(po, *st ? 1 : 0, 1))
+	if(per_put_few_bits(allocator, po, *st ? 1 : 0, 1))
 		_ASN_ENCODE_FAILED;
 
 	_ASN_ENCODED_OK(er);

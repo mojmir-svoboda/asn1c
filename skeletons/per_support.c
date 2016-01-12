@@ -242,12 +242,12 @@ uper_get_nsnnwn(asn_per_data_t *pd) {
  * Encoding of a normally small non-negative whole number
  */
 int
-uper_put_nsnnwn(asn_per_outp_t *po, int n) {
+uper_put_nsnnwn(Allocator * allocator, asn_per_outp_t *po, int n) {
 	int bytes;
 
 	if(n <= 63) {
 		if(n < 0) return -1;
-		return per_put_few_bits(po, n, 7);
+		return per_put_few_bits(allocator, po, n, 7);
 	}
 	if(n < 256)
 		bytes = 1;
@@ -257,10 +257,10 @@ uper_put_nsnnwn(asn_per_outp_t *po, int n) {
 		bytes = 3;
 	else
 		return -1;	/* This is not a "normally small" value */
-	if(per_put_few_bits(po, bytes, 8))
+	if(per_put_few_bits(allocator, po, bytes, 8))
 		return -1;
 
-	return per_put_few_bits(po, n, 8 * bytes);
+	return per_put_few_bits(allocator, po, n, 8 * bytes);
 }
 
 
@@ -291,7 +291,7 @@ int uper_get_constrained_whole_number(asn_per_data_t *pd, unsigned long *out_val
 
 
 /* X.691-2008/11, #11.5.6 -> #11.3 */
-int uper_put_constrained_whole_number_s(asn_per_outp_t *po, long v, int nbits) {
+int uper_put_constrained_whole_number_s(Allocator * allocator, asn_per_outp_t *po, long v, int nbits) {
 	/*
 	 * Assume signed number can be safely coerced into
 	 * unsigned of the same range.
@@ -302,17 +302,17 @@ int uper_put_constrained_whole_number_s(asn_per_outp_t *po, long v, int nbits) {
 	         long svalue  = uvalue1;
 	unsigned long uvalue2 = svalue;
 	assert(uvalue1 == uvalue2);
-	return uper_put_constrained_whole_number_u(po, v, nbits);
+	return uper_put_constrained_whole_number_u(allocator, po, v, nbits);
 }
 
-int uper_put_constrained_whole_number_u(asn_per_outp_t *po, unsigned long v, int nbits) {
+int uper_put_constrained_whole_number_u(Allocator * allocator, asn_per_outp_t *po, unsigned long v, int nbits) {
 	if(nbits <= 31) {
-		return per_put_few_bits(po, v, nbits);
+		return per_put_few_bits(allocator, po, v, nbits);
 	} else {
 		/* Put higher portion first, followed by lower 31-bit */
-		if(uper_put_constrained_whole_number_u(po, v >> 31, nbits - 31))
+		if(uper_put_constrained_whole_number_u(allocator, po, v >> 31, nbits - 31))
 			return -1;
-		return per_put_few_bits(po, v, 31);
+		return per_put_few_bits(allocator, po, v, 31);
 	}
 }
 
@@ -320,7 +320,7 @@ int uper_put_constrained_whole_number_u(asn_per_outp_t *po, unsigned long v, int
  * Put a small number of bits (<= 31).
  */
 int
-per_put_few_bits(asn_per_outp_t *po, uint32_t bits, int obits) {
+per_put_few_bits(Allocator * allocator, asn_per_outp_t *po, uint32_t bits, int obits) {
 	size_t off;	/* Next after last bit offset */
 	size_t omsk;	/* Existing last byte meaningful bits mask */
 	uint8_t *buf;
@@ -346,7 +346,7 @@ per_put_few_bits(asn_per_outp_t *po, uint32_t bits, int obits) {
 		int complete_bytes = (po->buffer - po->tmpspace);
 		ASN_DEBUG("[PER output %ld complete + %ld]",
 			(long)complete_bytes, (long)po->flushed_bytes);
-		if(po->outper(po->tmpspace, complete_bytes, po->op_key) < 0)
+		if(po->outper(allocator, po->tmpspace, complete_bytes, po->op_key) < 0)
 			return -1;
 		if(po->nboff)
 			po->tmpspace[0] = po->buffer[0];
@@ -394,8 +394,8 @@ per_put_few_bits(asn_per_outp_t *po, uint32_t bits, int obits) {
 		buf[2] = bits >> 8,
 		buf[3] = bits;
 	else {
-		per_put_few_bits(po, bits >> (obits - 24), 24);
-		per_put_few_bits(po, bits, obits - 24);
+		per_put_few_bits(allocator, po, bits >> (obits - 24), 24);
+		per_put_few_bits(allocator, po, bits, obits - 24);
 	}
 
 	ASN_DEBUG("[PER out %u/%x => %02x buf+%ld]",
@@ -410,7 +410,7 @@ per_put_few_bits(asn_per_outp_t *po, uint32_t bits, int obits) {
  * Output a large number of bits.
  */
 int
-per_put_many_bits(asn_per_outp_t *po, const uint8_t *src, int nbits) {
+per_put_many_bits(Allocator * allocator, asn_per_outp_t *po, const uint8_t *src, int nbits) {
 
 	while(nbits) {
 		uint32_t value;
@@ -419,7 +419,7 @@ per_put_many_bits(asn_per_outp_t *po, const uint8_t *src, int nbits) {
 			value = (src[0] << 16) | (src[1] << 8) | src[2];
 			src += 3;
 			nbits -= 24;
-			if(per_put_few_bits(po, value, 24))
+			if(per_put_few_bits(allocator, po, value, 24))
 				return -1;
 		} else {
 			value = src[0];
@@ -429,7 +429,7 @@ per_put_many_bits(asn_per_outp_t *po, const uint8_t *src, int nbits) {
 				value = (value << 8) | src[2];
 			if(nbits & 0x07)
 				value >>= (8 - (nbits & 0x07));
-			if(per_put_few_bits(po, value, nbits))
+			if(per_put_few_bits(allocator, po, value, nbits))
 				return -1;
 			break;
 		}
@@ -442,19 +442,19 @@ per_put_many_bits(asn_per_outp_t *po, const uint8_t *src, int nbits) {
  * Put the length "n" (or part of it) into the stream.
  */
 ssize_t
-uper_put_length(asn_per_outp_t *po, size_t length) {
+uper_put_length(Allocator * allocator, asn_per_outp_t *po, size_t length) {
 
 	if(length <= 127)	/* #10.9.3.6 */
-		return per_put_few_bits(po, length, 8)
+		return per_put_few_bits(allocator, po, length, 8)
 			? -1 : (ssize_t)length;
 	else if(length < 16384)	/* #10.9.3.7 */
-		return per_put_few_bits(po, length|0x8000, 16)
+		return per_put_few_bits(allocator, po, length|0x8000, 16)
 			? -1 : (ssize_t)length;
 
 	length >>= 14;
 	if(length > 4) length = 4;
 
-	return per_put_few_bits(po, 0xC0 | length, 8)
+	return per_put_few_bits(allocator, po, 0xC0 | length, 8)
 			? -1 : (ssize_t)(length << 14);
 }
 
@@ -465,14 +465,14 @@ uper_put_length(asn_per_outp_t *po, size_t length) {
  * for SET and SEQUENCE types.
  */
 int
-uper_put_nslength(asn_per_outp_t *po, size_t length) {
+uper_put_nslength(Allocator * allocator, asn_per_outp_t *po, size_t length) {
 
 	if(length <= 64) {
 		/* #10.9.3.4 */
 		if(length == 0) return -1;
-		return per_put_few_bits(po, length-1, 7) ? -1 : 0;
+		return per_put_few_bits(allocator, po, length-1, 7) ? -1 : 0;
 	} else {
-		if(uper_put_length(po, length) != (ssize_t)length) {
+		if(uper_put_length(allocator, po, length) != (ssize_t)length) {
 			/* This might happen in case of >16K extensions */
 			return -1;
 		}

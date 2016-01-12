@@ -41,7 +41,7 @@ asn_TYPE_descriptor_t asn_DEF_NativeEnumerated = {
 };
 
 asn_enc_rval_t
-NativeEnumerated_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
+NativeEnumerated_encode_xer(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr,
         int ilevel, enum xer_encoder_flags_e flags,
                 asn_app_consume_bytes_f *cb, void *app_key) {
 	asn_INTEGER_specifics_t *specs=(asn_INTEGER_specifics_t *)td->specifics;
@@ -61,7 +61,7 @@ NativeEnumerated_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
 
 		er.encoded = snprintf(src, srcsize, "<%s/>", el->enum_name);
 		assert(er.encoded > 0 && (size_t)er.encoded < srcsize);
-		if(cb(src, er.encoded, app_key) < 0) _ASN_ENCODE_FAILED;
+		if(cb(allocator, src, er.encoded, app_key) < 0) _ASN_ENCODE_FAILED;
 		_ASN_ENCODED_OK(er);
 	} else {
 		ASN_DEBUG("ASN.1 forbids dealing with "
@@ -71,7 +71,7 @@ NativeEnumerated_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
 }
 
 asn_dec_rval_t
-NativeEnumerated_decode_uper(asn_codec_ctx_t *opt_codec_ctx,
+NativeEnumerated_decode_uper(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx,
 	asn_TYPE_descriptor_t *td, asn_per_constraints_t *constraints,
 	void **sptr, asn_per_data_t *pd) {
 	asn_INTEGER_specifics_t *specs = (asn_INTEGER_specifics_t *)td->specifics;
@@ -88,7 +88,7 @@ NativeEnumerated_decode_uper(asn_codec_ctx_t *opt_codec_ctx,
 	if(!specs) _ASN_DECODE_FAILED;
 
 	if(!native) {
-		native = (long *)(*sptr = CALLOC(1, sizeof(*native)));
+		native = (long *)(*sptr = CXX_ALLOC_WRAP CALLOC(1, sizeof(*native)));
 		if(!native) _ASN_DECODE_FAILED;
 	}
 
@@ -137,7 +137,7 @@ NativeEnumerated__compar_value2enum(const void *ap, const void *bp) {
 }
 
 asn_enc_rval_t
-NativeEnumerated_encode_uper(asn_TYPE_descriptor_t *td,
+NativeEnumerated_encode_uper(Allocator * allocator, asn_TYPE_descriptor_t *td,
 	asn_per_constraints_t *constraints, void *sptr, asn_per_outp_t *po) {
 	asn_INTEGER_specifics_t *specs = (asn_INTEGER_specifics_t *)td->specifics;
 	asn_enc_rval_t er;
@@ -177,7 +177,7 @@ NativeEnumerated_encode_uper(asn_TYPE_descriptor_t *td,
 			inext = 1;
 	}
 	if(ct->flags & asn_per_constraint_s::APC_EXTENSIBLE) {
-		if(per_put_few_bits(po, inext, 1))
+		if(per_put_few_bits(allocator, po, inext, 1))
 			_ASN_ENCODE_FAILED;
 		if(inext) ct = 0;
 	} else if(inext) {
@@ -185,7 +185,7 @@ NativeEnumerated_encode_uper(asn_TYPE_descriptor_t *td,
 	}
 
 	if(ct && ct->range_bits >= 0) {
-		if(per_put_few_bits(po, value, ct->range_bits))
+		if(per_put_few_bits(allocator, po, value, ct->range_bits))
 			_ASN_ENCODE_FAILED;
 		_ASN_ENCODED_OK(er);
 	}
@@ -199,7 +199,7 @@ NativeEnumerated_encode_uper(asn_TYPE_descriptor_t *td,
 	ASN_DEBUG("value = %ld, ext = %d, inext = %d, res = %ld",
 		value, specs->extension, inext,
 		value - (inext ? (specs->extension - 1) : 0));
-	if(uper_put_nsnnwn(po, value - (inext ? (specs->extension - 1) : 0)))
+	if(uper_put_nsnnwn(allocator, po, value - (inext ? (specs->extension - 1) : 0)))
 		_ASN_ENCODE_FAILED;
 
 	_ASN_ENCODED_OK(er);

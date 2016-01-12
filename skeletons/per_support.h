@@ -8,7 +8,7 @@
 
 #include <asn_system.h>		/* Platform-specific types */
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -95,40 +95,40 @@ typedef struct asn_per_outp_s {
 	size_t nboff;		/* Bit offset to the meaningful bit */
 	size_t nbits;		/* Number of bits left in (tmpspace) */
 	uint8_t tmpspace[32];	/* Preliminary storage to hold data */
-	int (*outper)(const void *data, size_t size, void *op_key);
+	int (*outper)(Allocator * allocator, const void *data, size_t size, void *op_key);
 	void *op_key;		/* Key for (outper) data callback */
 	size_t flushed_bytes;	/* Bytes already flushed through (outper) */
 } asn_per_outp_t;
 
 /* Output a small number of bits (<= 31) */
-int per_put_few_bits(asn_per_outp_t *per_data, uint32_t bits, int obits);
+int per_put_few_bits(Allocator * allocator, asn_per_outp_t *per_data, uint32_t bits, int obits);
 
 /* Output a large number of bits */
-int per_put_many_bits(asn_per_outp_t *po, const uint8_t *src, int put_nbits);
+int per_put_many_bits(Allocator * allocator, asn_per_outp_t *po, const uint8_t *src, int put_nbits);
 
 /* X.691-2008/11, #11.5 */
-int uper_put_constrained_whole_number_s(asn_per_outp_t *po, long v, int nbits);
-int uper_put_constrained_whole_number_u(asn_per_outp_t *po, unsigned long v, int nbits);
+int uper_put_constrained_whole_number_s(Allocator * allocator, asn_per_outp_t *po, long v, int nbits);
+int uper_put_constrained_whole_number_u(Allocator * allocator, asn_per_outp_t *po, unsigned long v, int nbits);
 
 /*
  * Put the length "n" to the Unaligned PER stream.
  * This function returns the number of units which may be flushed
  * in the next units saving iteration.
  */
-ssize_t uper_put_length(asn_per_outp_t *po, size_t whole_length);
+ssize_t uper_put_length(Allocator * allocator, asn_per_outp_t *po, size_t whole_length);
 
 /*
  * Put the normally small length "n" to the Unaligned PER stream.
  * Returns 0 or -1.
  */
-int uper_put_nslength(asn_per_outp_t *po, size_t length);
+int uper_put_nslength(Allocator * allocator, asn_per_outp_t *po, size_t length);
 
 /*
  * Put the normally small non-negative whole number.
  */
-int uper_put_nsnnwn(asn_per_outp_t *po, int n);
+int uper_put_nsnnwn(Allocator * allocator, asn_per_outp_t *po, int n);
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

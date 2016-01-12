@@ -98,7 +98,7 @@ _search4tag(const void *ap, const void *bp) {
  * The decoder of the CHOICE type.
  */
 asn_dec_rval_t
-CHOICE_decode_ber(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
+CHOICE_decode_ber(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	void **struct_ptr, const void *ptr, size_t size, int tag_mode) {
 	/*
 	 * Bring closer parts of structure description.
@@ -124,7 +124,7 @@ CHOICE_decode_ber(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	 * Create the target structure if it is not present already.
 	 */
 	if(st == 0) {
-		st = *struct_ptr = CALLOC(1, specs->struct_size);
+		st = *struct_ptr = CXX_ALLOC_WRAP CALLOC(1, specs->struct_size);
 		if(st == 0) {
 			RETURN(RC_FAIL);
 		}
@@ -259,7 +259,7 @@ CHOICE_decode_ber(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 		/*
 		 * Invoke the member fetch routine according to member's type
 		 */
-		rval = elm->type->ber_decoder(opt_codec_ctx, elm->type,
+		rval = elm->type->ber_decoder(allocator, opt_codec_ctx, elm->type,
 				memb_ptr2, ptr, LEFT, elm->tag_mode);
 		switch(rval.code) {
 		case RC_OK:
@@ -354,7 +354,7 @@ CHOICE_decode_ber(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 }
 
 asn_enc_rval_t
-CHOICE_encode_der(asn_TYPE_descriptor_t *td, void *sptr,
+CHOICE_encode_der(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr,
 		int tag_mode, ber_tlv_tag_t tag,
 		asn_app_consume_bytes_f *cb, void *app_key) {
 	asn_CHOICE_specifics_t *specs = (asn_CHOICE_specifics_t *)td->specifics;
@@ -415,13 +415,13 @@ CHOICE_encode_der(asn_TYPE_descriptor_t *td, void *sptr,
 		ssize_t ret;
 
 		/* Encode member with its tag */
-		erval = elm->type->der_encoder(elm->type, memb_ptr,
+		erval = elm->type->der_encoder(allocator, elm->type, memb_ptr,
 			elm->tag_mode, elm->tag, 0, 0);
 		if(erval.encoded == -1)
 			return erval;
 
 		/* Encode CHOICE with parent or my own tag */
-		ret = der_write_tags(td, erval.encoded, tag_mode, 1, tag,
+		ret = der_write_tags(allocator, td, erval.encoded, tag_mode, 1, tag,
 			cb, app_key);
 		if(ret == -1)
 			_ASN_ENCODE_FAILED;
@@ -431,7 +431,8 @@ CHOICE_encode_der(asn_TYPE_descriptor_t *td, void *sptr,
 	/*
 	 * Encode the single underlying member.
 	 */
-	erval = elm->type->der_encoder(elm->type, memb_ptr,
+	erval = elm->type->der_encoder(allocator,
+		elm->type, memb_ptr,
 		elm->tag_mode, elm->tag, cb, app_key);
 	if(erval.encoded == -1)
 		return erval;
@@ -544,7 +545,7 @@ CHOICE_constraint(asn_TYPE_descriptor_t *td, const void *sptr,
  * Decode the XER (XML) data.
  */
 asn_dec_rval_t
-CHOICE_decode_xer(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
+CHOICE_decode_xer(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	void **struct_ptr, const char *opt_mname,
 		const void *buf_ptr, size_t size) {
 	/*
@@ -567,7 +568,7 @@ CHOICE_decode_xer(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	 * Create the target structure if it is not present already.
 	 */
 	if(st == 0) {
-		st = *struct_ptr = CALLOC(1, specs->struct_size);
+		st = *struct_ptr = CXX_ALLOC_WRAP CALLOC(1, specs->struct_size);
 		if(st == 0) RETURN(RC_FAIL);
 	}
 
@@ -613,7 +614,7 @@ CHOICE_decode_xer(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 			}
 
 			/* Start/Continue decoding the inner member */
-			tmprval = elm->type->xer_decoder(opt_codec_ctx,
+			tmprval = elm->type->xer_decoder(allocator, opt_codec_ctx,
 					elm->type, memb_ptr2, elm->name,
 					buf_ptr, size);
 			XER_ADVANCE(tmprval.consumed);
@@ -772,7 +773,7 @@ CHOICE_decode_xer(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 
 
 asn_enc_rval_t
-CHOICE_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
+CHOICE_encode_xer(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr,
 	int ilevel, enum xer_encoder_flags_e flags,
 		asn_app_consume_bytes_f *cb, void *app_key) {
 	asn_CHOICE_specifics_t *specs=(asn_CHOICE_specifics_t *)td->specifics;
@@ -805,19 +806,19 @@ CHOICE_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
 
 		er.encoded = 0;
 
-                if(!(flags & XER_F_CANONICAL)) _i_ASN_TEXT_INDENT(1, ilevel);
-		_ASN_CALLBACK3("<", 1, mname, mlen, ">", 1);
+                if(!(flags & XER_F_CANONICAL)) _i_ASN_TEXT_INDENT(allocator, 1, ilevel);
+		_ASN_CALLBACK3(allocator, "<", 1, mname, mlen, ">", 1);
 
-		tmper = elm->type->xer_encoder(elm->type, memb_ptr,
+		tmper = elm->type->xer_encoder(allocator, elm->type, memb_ptr,
 				ilevel + 1, flags, cb, app_key);
 		if(tmper.encoded == -1) return tmper;
 
-		_ASN_CALLBACK3("</", 2, mname, mlen, ">", 1);
+		_ASN_CALLBACK3(allocator, "</", 2, mname, mlen, ">", 1);
 
 		er.encoded += 5 + (2 * mlen) + tmper.encoded;
 	}
 
-	if(!(flags & XER_F_CANONICAL)) _i_ASN_TEXT_INDENT(1, ilevel - 1);
+	if(!(flags & XER_F_CANONICAL)) _i_ASN_TEXT_INDENT(allocator, 1, ilevel - 1);
 
 	_ASN_ENCODED_OK(er);
 cb_failed:
@@ -825,7 +826,7 @@ cb_failed:
 }
 
 asn_dec_rval_t
-CHOICE_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
+CHOICE_decode_uper(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	asn_per_constraints_t *constraints, void **sptr, asn_per_data_t *pd) {
 	asn_CHOICE_specifics_t *specs = (asn_CHOICE_specifics_t *)td->specifics;
 	asn_dec_rval_t rv;
@@ -843,7 +844,7 @@ CHOICE_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	 * Create the target structure if it is not present already.
 	 */
 	if(!st) {
-		st = *sptr = CALLOC(1, specs->struct_size);
+		st = *sptr = CXX_ALLOC_WRAP CALLOC(1, specs->struct_size);
 		if(!st) _ASN_DECODE_FAILED;
 	}
 
@@ -892,10 +893,10 @@ CHOICE_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	ASN_DEBUG("Discovered CHOICE %s encodes %s", td->name, elm->name);
 
 	if(ct && ct->range_bits >= 0) {
-		rv = elm->type->uper_decoder(opt_codec_ctx, elm->type,
+		rv = elm->type->uper_decoder(allocator, opt_codec_ctx, elm->type,
 			elm->per_constraints, memb_ptr2, pd);
 	} else {
-		rv = uper_open_type_get(opt_codec_ctx, elm->type,
+		rv = uper_open_type_get(allocator, opt_codec_ctx, elm->type,
 			elm->per_constraints, memb_ptr2, pd);
 	}
 
@@ -906,7 +907,7 @@ CHOICE_decode_uper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 }
    
 asn_enc_rval_t
-CHOICE_encode_uper(asn_TYPE_descriptor_t *td,
+CHOICE_encode_uper(Allocator * allocator, asn_TYPE_descriptor_t *td,
 	asn_per_constraints_t *constraints, void *sptr, asn_per_outp_t *po) {
 	asn_CHOICE_specifics_t *specs = (asn_CHOICE_specifics_t *)td->specifics;
 	asn_TYPE_member_t *elm;	/* CHOICE's element */
@@ -947,7 +948,7 @@ CHOICE_encode_uper(asn_TYPE_descriptor_t *td,
 		if(present_enc < ct->lower_bound
 		|| present_enc > ct->upper_bound) {
 			if(ct->flags & asn_per_constraint_s::APC_EXTENSIBLE) {
-				if(per_put_few_bits(po, 1, 1))
+				if(per_put_few_bits(allocator, po, 1, 1))
 					_ASN_ENCODE_FAILED;
 			} else {
 				_ASN_ENCODE_FAILED;
@@ -956,7 +957,7 @@ CHOICE_encode_uper(asn_TYPE_descriptor_t *td,
 		}
 	}
 	if(ct && ct->flags & asn_per_constraint_s::APC_EXTENSIBLE)
-		if(per_put_few_bits(po, 0, 1))
+		if(per_put_few_bits(allocator, po, 0, 1))
 			_ASN_ENCODE_FAILED;
 
 	elm = &td->elements[present];
@@ -969,18 +970,18 @@ CHOICE_encode_uper(asn_TYPE_descriptor_t *td,
 	}
 
 	if(ct && ct->range_bits >= 0) {
-		if(per_put_few_bits(po, present_enc, ct->range_bits))
+		if(per_put_few_bits(allocator, po, present_enc, ct->range_bits))
 			_ASN_ENCODE_FAILED;
 
-		return elm->type->uper_encoder(elm->type, elm->per_constraints,
+		return elm->type->uper_encoder(allocator, elm->type, elm->per_constraints,
 			memb_ptr, po);
 	} else {
 		asn_enc_rval_t rval;
 		if(specs->ext_start == -1)
 			_ASN_ENCODE_FAILED;
-		if(uper_put_nsnnwn(po, present_enc - specs->ext_start))
+		if(uper_put_nsnnwn(allocator, po, present_enc - specs->ext_start))
 			_ASN_ENCODE_FAILED;
-		if(uper_open_type_put(elm->type, elm->per_constraints,
+		if(uper_open_type_put(allocator, elm->type, elm->per_constraints,
 			memb_ptr, po))
 			_ASN_ENCODE_FAILED;
 		rval.encoded = 0;
@@ -990,12 +991,12 @@ CHOICE_encode_uper(asn_TYPE_descriptor_t *td,
    
 
 int
-CHOICE_print(asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
+CHOICE_print(Allocator * allocator, asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
 		asn_app_consume_bytes_f *cb, void *app_key) {
 	asn_CHOICE_specifics_t *specs = (asn_CHOICE_specifics_t *)td->specifics;
 	int present;
 
-	if(!sptr) return (cb("<absent>", 8, app_key) < 0) ? -1 : 0;
+	if(!sptr) return (cb(allocator ,"<absent>", 8, app_key) < 0) ? -1 : 0;
 
 	/*
 	 * Figure out which CHOICE element is encoded.
@@ -1011,27 +1012,27 @@ CHOICE_print(asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
 
 		if(elm->flags & ATF_POINTER) {
 			memb_ptr = *(const void * const *)((const char *)sptr + elm->memb_offset);
-			if(!memb_ptr) return (cb("<absent>", 8, app_key) < 0) ? -1 : 0;
+			if(!memb_ptr) return (cb(allocator, "<absent>", 8, app_key) < 0) ? -1 : 0;
 		} else {
 			memb_ptr = (const void *)((const char *)sptr + elm->memb_offset);
 		}
 
 		/* Print member's name and stuff */
 		if(0) {
-			if(cb(elm->name, strlen(elm->name), app_key) < 0
-			|| cb(": ", 2, app_key) < 0)
+			if(cb(allocator, elm->name, strlen(elm->name), app_key) < 0
+			|| cb(allocator, ": ", 2, app_key) < 0)
 				return -1;
 		}
 
-		return elm->type->print_struct(elm->type, memb_ptr, ilevel,
+		return elm->type->print_struct(allocator, elm->type, memb_ptr, ilevel,
 			cb, app_key);
 	} else {
-		return (cb("<absent>", 8, app_key) < 0) ? -1 : 0;
+		return (cb(allocator, "<absent>", 8, app_key) < 0) ? -1 : 0;
 	}
 }
 
 void
-CHOICE_free(asn_TYPE_descriptor_t *td, void *ptr, int contents_only) {
+CHOICE_free(Allocator * allocator, asn_TYPE_descriptor_t *td, void *ptr, int contents_only) {
 	asn_CHOICE_specifics_t *specs = (asn_CHOICE_specifics_t *)td->specifics;
 	int present;
 
@@ -1055,15 +1056,15 @@ CHOICE_free(asn_TYPE_descriptor_t *td, void *ptr, int contents_only) {
 		if(elm->flags & ATF_POINTER) {
 			memb_ptr = *(void **)((char *)ptr + elm->memb_offset);
 			if(memb_ptr)
-				ASN_STRUCT_FREE(*elm->type, memb_ptr);
+				ASN_STRUCT_FREE(allocator, *elm->type, memb_ptr);
 		} else {
 			memb_ptr = (void *)((char *)ptr + elm->memb_offset);
-			ASN_STRUCT_FREE_CONTENTS_ONLY(*elm->type, memb_ptr);
+			ASN_STRUCT_FREE_CONTENTS_ONLY(allocator, *elm->type, memb_ptr);
 		}
 	}
 
 	if(!contents_only) {
-		FREEMEM(ptr);
+		CXX_ALLOC_WRAP FREEMEM(ptr);
 	}
 }
 

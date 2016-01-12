@@ -5,14 +5,14 @@
 #include <asn_internal.h>
 #include <errno.h>
 
-static ssize_t der_write_TL(ber_tlv_tag_t tag, ber_tlv_len_t len,
+static ssize_t der_write_TL(Allocator * allocator, ber_tlv_tag_t tag, ber_tlv_len_t len,
 	asn_app_consume_bytes_f *cb, void *app_key, int constructed);
 
 /*
  * The DER encoder of any type.
  */
 asn_enc_rval_t
-der_encode(asn_TYPE_descriptor_t *type_descriptor, void *struct_ptr,
+der_encode(Allocator * allocator, asn_TYPE_descriptor_t *type_descriptor, void *struct_ptr,
 	asn_app_consume_bytes_f *consume_bytes, void *app_key) {
 
 	ASN_DEBUG("DER encoder invoked for %s",
@@ -21,7 +21,7 @@ der_encode(asn_TYPE_descriptor_t *type_descriptor, void *struct_ptr,
 	/*
 	 * Invoke type-specific encoder.
 	 */
-	return type_descriptor->der_encoder(type_descriptor,
+	return type_descriptor->der_encoder(allocator, type_descriptor,
 		struct_ptr,	/* Pointer to the destination structure */
 		0, 0,
 		consume_bytes, app_key);
@@ -34,7 +34,7 @@ typedef struct enc_to_buf_arg {
 	void *buffer;
 	size_t left;
 } enc_to_buf_arg;
-static int encode_to_buffer_cb(const void *buffer, size_t size, void *key) {
+static int encode_to_buffer_cb(Allocator * allocator, const void *buffer, size_t size, void *key) {
 	enc_to_buf_arg *arg = (enc_to_buf_arg *)key;
 
 	if(arg->left < size)
@@ -51,7 +51,7 @@ static int encode_to_buffer_cb(const void *buffer, size_t size, void *key) {
  * A variant of the der_encode() which encodes the data into the provided buffer
  */
 asn_enc_rval_t
-der_encode_to_buffer(asn_TYPE_descriptor_t *type_descriptor, void *struct_ptr,
+der_encode_to_buffer(Allocator * allocator, asn_TYPE_descriptor_t *type_descriptor, void *struct_ptr,
 	void *buffer, size_t buffer_size) {
 	enc_to_buf_arg arg;
 	asn_enc_rval_t ec;
@@ -59,7 +59,7 @@ der_encode_to_buffer(asn_TYPE_descriptor_t *type_descriptor, void *struct_ptr,
 	arg.buffer = buffer;
 	arg.left = buffer_size;
 
-	ec = type_descriptor->der_encoder(type_descriptor,
+	ec = type_descriptor->der_encoder(allocator, type_descriptor,
 		struct_ptr,	/* Pointer to the destination structure */
 		0, 0, encode_to_buffer_cb, &arg);
 	if(ec.encoded != -1) {
@@ -74,7 +74,7 @@ der_encode_to_buffer(asn_TYPE_descriptor_t *type_descriptor, void *struct_ptr,
  * Write out leading TL[v] sequence according to the type definition.
  */
 ssize_t
-der_write_tags(asn_TYPE_descriptor_t *sd,
+der_write_tags(Allocator * allocator, asn_TYPE_descriptor_t *sd,
 		size_t struct_length,
 		int tag_mode, int last_tag_form,
 		ber_tlv_tag_t tag,	/* EXPLICIT or IMPLICIT tag */
@@ -138,7 +138,7 @@ der_write_tags(asn_TYPE_descriptor_t *sd,
 	 */
 	overall_length = struct_length;
 	for(i = tags_count - 1; i >= 0; --i) {
-		lens[i] = der_write_TL(tags[i], overall_length, 0, 0, 0);
+		lens[i] = der_write_TL(allocator, tags[i], overall_length, 0, 0, 0);
 		if(lens[i] == -1) return -1;
 		overall_length += lens[i];
 		lens[i] = overall_length - lens[i];
@@ -159,7 +159,7 @@ der_write_tags(asn_TYPE_descriptor_t *sd,
 		/* Check if this tag happens to be constructed */
 		_constr = (last_tag_form || i < (tags_count - 1));
 
-		len = der_write_TL(tags[i], lens[i], cb, app_key, _constr);
+		len = der_write_TL(allocator, tags[i], lens[i], cb, app_key, _constr);
 		if(len == -1) return -1;
 	}
 
@@ -167,7 +167,7 @@ der_write_tags(asn_TYPE_descriptor_t *sd,
 }
 
 static ssize_t
-der_write_TL(ber_tlv_tag_t tag, ber_tlv_len_t len,
+der_write_TL(Allocator * allocator, ber_tlv_tag_t tag, ber_tlv_len_t len,
 		asn_app_consume_bytes_f *cb, void *app_key,
 		int constructed) {
 	uint8_t buf[32];
@@ -193,7 +193,7 @@ der_write_TL(ber_tlv_tag_t tag, ber_tlv_len_t len,
 	 */
 	if(cb) {
 		if(constructed) *buf |= 0x20;
-		if(cb(buf, size, app_key) < 0)
+		if(cb(allocator, buf, size, app_key) < 0)
 			return -1;
 	}
 

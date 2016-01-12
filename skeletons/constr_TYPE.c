@@ -33,7 +33,7 @@ asn_TYPE_outmost_tag(const asn_TYPE_descriptor_t *type_descriptor,
  * Print the target language's structure in human readable form.
  */
 int
-asn_fprint(FILE *stream, asn_TYPE_descriptor_t *td, const void *struct_ptr) {
+asn_fprint(Allocator * allocator, FILE *stream, asn_TYPE_descriptor_t *td, const void *struct_ptr) {
 	if(!stream) stream = stdout;
 	if(!td || !struct_ptr) {
 		errno = EINVAL;
@@ -41,11 +41,11 @@ asn_fprint(FILE *stream, asn_TYPE_descriptor_t *td, const void *struct_ptr) {
 	}
 
 	/* Invoke type-specific printer */
-	if(td->print_struct(td, struct_ptr, 1, _print2fp, stream))
+	if(td->print_struct(allocator, td, struct_ptr, 1, _print2fp, stream))
 		return -1;
 
 	/* Terminate the output */
-	if(_print2fp("\n", 1, stream))
+	if(_print2fp(NULL, "\n", 1, stream))
 		return -1;
 
 	return fflush(stream);
@@ -53,7 +53,7 @@ asn_fprint(FILE *stream, asn_TYPE_descriptor_t *td, const void *struct_ptr) {
 
 /* Dump the data into the specified stdio stream */
 static int
-_print2fp(const void *buffer, size_t size, void *app_key) {
+_print2fp(Allocator * allocator, const void *buffer, size_t size, void *app_key) {
 	FILE *stream = (FILE *)app_key;
 
 	if(fwrite(buffer, 1, size, stream) != size)

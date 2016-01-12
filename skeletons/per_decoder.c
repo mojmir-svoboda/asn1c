@@ -37,7 +37,7 @@ uper_decode_complete(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td, 
 }
 
 asn_dec_rval_t
-uper_decode(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td, void **sptr, const void *buffer, size_t size, int skip_bits, int unused_bits) {
+uper_decode(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td, void **sptr, const void *buffer, size_t size, int skip_bits, int unused_bits) {
 	asn_codec_ctx_t s_codec_ctx;
 	asn_dec_rval_t rval;
 	asn_per_data_t pd;
@@ -76,7 +76,7 @@ uper_decode(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td, void **sp
 	 */
 	if(!td->uper_decoder)
 		_ASN_DECODE_FAILED;	/* PER is not compiled in */
-	rval = td->uper_decoder(opt_codec_ctx, td, 0, sptr, &pd);
+	rval = td->uper_decoder(allocator, opt_codec_ctx, td, 0, sptr, &pd);
 	if(rval.code == RC_OK) {
 		/* Return the number of consumed bits */
 		rval.consumed = ((pd.buffer - (const uint8_t *)buffer) << 3)

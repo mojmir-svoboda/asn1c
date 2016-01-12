@@ -2,11 +2,11 @@
 #include <asn_internal.h>
 #include <per_encoder.h>
 
-static asn_enc_rval_t uper_encode_internal(asn_TYPE_descriptor_t *td, asn_per_constraints_t *, void *sptr, asn_app_consume_bytes_f *cb, void *app_key);
+static asn_enc_rval_t uper_encode_internal(Allocator * allocator, asn_TYPE_descriptor_t *td, asn_per_constraints_t *, void *sptr, asn_app_consume_bytes_f *cb, void *app_key);
 
 asn_enc_rval_t
-uper_encode(asn_TYPE_descriptor_t *td, void *sptr, asn_app_consume_bytes_f *cb, void *app_key) {
-	return uper_encode_internal(td, 0, sptr, cb, app_key);
+uper_encode(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr, asn_app_consume_bytes_f *cb, void *app_key) {
+	return uper_encode_internal(allocator, td, 0, sptr, cb, app_key);
 }
 
 /*
@@ -16,7 +16,7 @@ typedef struct enc_to_buf_arg {
 	void *buffer;
 	size_t left;
 } enc_to_buf_arg;
-static int encode_to_buffer_cb(const void *buffer, size_t size, void *key) {
+static int encode_to_buffer_cb(Allocator * allocator, const void *buffer, size_t size, void *key) {
 	enc_to_buf_arg *arg = (enc_to_buf_arg *)key;
 
 	if(arg->left < size)
@@ -30,7 +30,7 @@ static int encode_to_buffer_cb(const void *buffer, size_t size, void *key) {
 }
 
 asn_enc_rval_t
-uper_encode_to_buffer(asn_TYPE_descriptor_t *td, void *sptr, void *buffer, size_t buffer_size) {
+uper_encode_to_buffer(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr, void *buffer, size_t buffer_size) {
 	enc_to_buf_arg key;
 
 	key.buffer = buffer;
@@ -38,7 +38,7 @@ uper_encode_to_buffer(asn_TYPE_descriptor_t *td, void *sptr, void *buffer, size_
 
 	if(td) ASN_DEBUG("Encoding \"%s\" using UNALIGNED PER", td->name);
 
-	return uper_encode_internal(td, 0, sptr, encode_to_buffer_cb, &key);
+	return uper_encode_internal(allocator, td, 0, sptr, encode_to_buffer_cb, &key);
 }
 
 typedef struct enc_dyn_arg {
@@ -47,15 +47,15 @@ typedef struct enc_dyn_arg {
 	size_t allocated;
 } enc_dyn_arg;
 static int
-encode_dyn_cb(const void *buffer, size_t size, void *key) {
+encode_dyn_cb(Allocator * allocator, const void *buffer, size_t size, void *key) {
 	enc_dyn_arg *arg = (enc_dyn_arg *)key;
 	if(arg->length + size >= arg->allocated) {
 		void *p;
 		size_t oldsize = arg->allocated;
 		arg->allocated = arg->allocated ? (arg->allocated << 2) : size;
-		p = REALLOC(arg->buffer, oldsize, arg->allocated);
+		p = CXX_ALLOC_WRAP REALLOC(arg->buffer, oldsize, arg->allocated);
 		if(!p) {
-			FREEMEM(arg->buffer);
+			CXX_ALLOC_WRAP FREEMEM(arg->buffer);
 			memset(arg, 0, sizeof(*arg));
 			return -1;
 		}
@@ -66,20 +66,20 @@ encode_dyn_cb(const void *buffer, size_t size, void *key) {
 	return 0;
 }
 ssize_t
-uper_encode_to_new_buffer(asn_TYPE_descriptor_t *td, asn_per_constraints_t *constraints, void *sptr, void **buffer_r) {
+uper_encode_to_new_buffer(Allocator * allocator, asn_TYPE_descriptor_t *td, asn_per_constraints_t *constraints, void *sptr, void **buffer_r) {
 	asn_enc_rval_t er;
 	enc_dyn_arg key;
 
 	memset(&key, 0, sizeof(key));
 
-	er = uper_encode_internal(td, constraints, sptr, encode_dyn_cb, &key);
+	er = uper_encode_internal(allocator, td, constraints, sptr, encode_dyn_cb, &key);
 	switch(er.encoded) {
 	case -1:
-		FREEMEM(key.buffer);
+		CXX_ALLOC_WRAP FREEMEM(key.buffer);
 		return -1;
 	case 0:
-		FREEMEM(key.buffer);
-		key.buffer = MALLOC(1);
+		CXX_ALLOC_WRAP FREEMEM(key.buffer);
+		key.buffer = CXX_ALLOC_WRAP MALLOC(1);
 		if(key.buffer) {
 			*(char *)key.buffer = '\0';
 			*buffer_r = key.buffer;
@@ -100,7 +100,7 @@ uper_encode_to_new_buffer(asn_TYPE_descriptor_t *td, asn_per_constraints_t *cons
 
 /* Flush partially filled buffer */
 static int
-_uper_encode_flush_outp(asn_per_outp_t *po) {
+_uper_encode_flush_outp(Allocator * allocator, asn_per_outp_t *po) {
 	uint8_t *buf;
 
 	if(po->nboff == 0 && po->buffer == po->tmpspace)
@@ -113,11 +113,11 @@ _uper_encode_flush_outp(asn_per_outp_t *po) {
 		buf++;
 	}
 
-	return po->outper(po->tmpspace, buf - po->tmpspace, po->op_key);
+	return po->outper(allocator, po->tmpspace, buf - po->tmpspace, po->op_key);
 }
 
 static asn_enc_rval_t
-uper_encode_internal(asn_TYPE_descriptor_t *td, asn_per_constraints_t *constraints, void *sptr, asn_app_consume_bytes_f *cb, void *app_key) {
+uper_encode_internal(Allocator * allocator, asn_TYPE_descriptor_t *td, asn_per_constraints_t *constraints, void *sptr, asn_app_consume_bytes_f *cb, void *app_key) {
 	asn_per_outp_t po;
 	asn_enc_rval_t er;
 
@@ -134,7 +134,7 @@ uper_encode_internal(asn_TYPE_descriptor_t *td, asn_per_constraints_t *constrain
 	po.op_key = app_key;
 	po.flushed_bytes = 0;
 
-	er = td->uper_encoder(td, constraints, sptr, &po);
+	er = td->uper_encoder(allocator, td, constraints, sptr, &po);
 	if(er.encoded != -1) {
 		size_t bits_to_flush;
 
@@ -143,7 +143,7 @@ uper_encode_internal(asn_TYPE_descriptor_t *td, asn_per_constraints_t *constrain
 		/* Set number of bits encoded to a firm value */
 		er.encoded = (po.flushed_bytes << 3) + bits_to_flush;
 
-		if(_uper_encode_flush_outp(&po))
+		if(_uper_encode_flush_outp(allocator, &po))
 			_ASN_ENCODE_FAILED;
 	}
 

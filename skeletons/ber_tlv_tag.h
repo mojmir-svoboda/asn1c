@@ -5,7 +5,7 @@
 #ifndef	_BER_TLV_TAG_H_
 #define	_BER_TLV_TAG_H_
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -53,7 +53,7 @@ ssize_t ber_fetch_tag(const void *bufptr, size_t size, ber_tlv_tag_t *tag_r);
  */
 size_t ber_tlv_tag_serialize(ber_tlv_tag_t tag, void *bufptr, size_t size);
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

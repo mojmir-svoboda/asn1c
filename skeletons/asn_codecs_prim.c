@@ -10,7 +10,7 @@
  * Decode an always-primitive type.
  */
 asn_dec_rval_t
-ber_decode_primitive(asn_codec_ctx_t *opt_codec_ctx,
+ber_decode_primitive(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx,
 	asn_TYPE_descriptor_t *td,
 	void **sptr, const void *buf_ptr, size_t size, int tag_mode) {
 	ASN__PRIMITIVE_TYPE_t *st = (ASN__PRIMITIVE_TYPE_t *)*sptr;
@@ -21,7 +21,7 @@ ber_decode_primitive(asn_codec_ctx_t *opt_codec_ctx,
 	 * If the structure is not there, allocate it.
 	 */
 	if(st == NULL) {
-		st = (ASN__PRIMITIVE_TYPE_t *)CALLOC(1, sizeof(*st));
+		st = (ASN__PRIMITIVE_TYPE_t *)CXX_ALLOC_WRAP CALLOC(1, sizeof(*st));
 		if(st == NULL) _ASN_DECODE_FAILED;
 		*sptr = (void *)st;
 	}
@@ -58,7 +58,7 @@ ber_decode_primitive(asn_codec_ctx_t *opt_codec_ctx,
 		_ASN_DECODE_FAILED;
 	}
 
-	st->buf = (uint8_t *)MALLOC(length + 1);
+	st->buf = (uint8_t *)CXX_ALLOC_WRAP MALLOC(length + 1);
 	if(!st->buf) {
 		st->size = 0;
 		_ASN_DECODE_FAILED;
@@ -81,7 +81,7 @@ ber_decode_primitive(asn_codec_ctx_t *opt_codec_ctx,
  * Encode an always-primitive type using DER.
  */
 asn_enc_rval_t
-der_encode_primitive(asn_TYPE_descriptor_t *td, void *sptr,
+der_encode_primitive(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr,
 	int tag_mode, ber_tlv_tag_t tag,
 	asn_app_consume_bytes_f *cb, void *app_key) {
 	asn_enc_rval_t erval;
@@ -90,7 +90,7 @@ der_encode_primitive(asn_TYPE_descriptor_t *td, void *sptr,
 	ASN_DEBUG("%s %s as a primitive type (tm=%d)",
 		cb?"Encoding":"Estimating", td->name, tag_mode);
 
-	erval.encoded = der_write_tags(td, st->size, tag_mode, 0, tag,
+	erval.encoded = der_write_tags(allocator, td, st->size, tag_mode, 0, tag,
 		cb, app_key);
 	ASN_DEBUG("%s wrote tags %d", td->name, (int)erval.encoded);
 	if(erval.encoded == -1) {
@@ -100,7 +100,7 @@ der_encode_primitive(asn_TYPE_descriptor_t *td, void *sptr,
 	}
 
 	if(cb && st->buf) {
-		if(cb(st->buf, st->size, app_key) < 0) {
+		if(cb(allocator, st->buf, st->size, app_key) < 0) {
 			erval.encoded = -1;
 			erval.failed_type = td;
 			erval.structure_ptr = sptr;
@@ -115,7 +115,7 @@ der_encode_primitive(asn_TYPE_descriptor_t *td, void *sptr,
 }
 
 void
-ASN__PRIMITIVE_TYPE_free(asn_TYPE_descriptor_t *td, void *sptr,
+ASN__PRIMITIVE_TYPE_free(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr,
 		int contents_only) {
 	ASN__PRIMITIVE_TYPE_t *st = (ASN__PRIMITIVE_TYPE_t *)sptr;
 
@@ -125,10 +125,10 @@ ASN__PRIMITIVE_TYPE_free(asn_TYPE_descriptor_t *td, void *sptr,
 	ASN_DEBUG("Freeing %s as a primitive type", td->name);
 
 	if(st->buf)
-		FREEMEM(st->buf);
+		CXX_ALLOC_WRAP FREEMEM(st->buf);
 
 	if(!contents_only)
-		FREEMEM(st);
+		CXX_ALLOC_WRAP FREEMEM(st);
 }
 
 
@@ -149,7 +149,7 @@ struct xdp_arg_s {
  * be supplied with such tags to parse them as needed.
  */
 static int
-xer_decode__unexpected_tag(void *key, const void *chunk_buf, size_t chunk_size) {
+xer_decode__unexpected_tag(Allocator * allocator, void *key, const void *chunk_buf, size_t chunk_size) {
 	struct xdp_arg_s *arg = (struct xdp_arg_s *)key;
 	enum xer_pbd_rval bret;
 
@@ -164,7 +164,7 @@ xer_decode__unexpected_tag(void *key, const void *chunk_buf, size_t chunk_size) 
 	if(arg->decoded_something)
 		return -1;
 
-	bret = arg->prim_body_decoder(arg->type_descriptor,
+	bret = arg->prim_body_decoder(allocator, arg->type_descriptor,
 		arg->struct_key, chunk_buf, chunk_size);
 	switch(bret) {
 	case XPBD_SYSTEM_FAILURE:
@@ -183,7 +183,7 @@ xer_decode__unexpected_tag(void *key, const void *chunk_buf, size_t chunk_size) 
 }
 
 static ssize_t
-xer_decode__primitive_body(void *key, const void *chunk_buf, size_t chunk_size, int have_more) {
+xer_decode__primitive_body(Allocator * allocator, void *key, const void *chunk_buf, size_t chunk_size, int have_more) {
 	struct xdp_arg_s *arg = (struct xdp_arg_s *)key;
 	enum xer_pbd_rval bret;
 	size_t lead_wsp_size;
@@ -220,7 +220,7 @@ xer_decode__primitive_body(void *key, const void *chunk_buf, size_t chunk_size, 
 	chunk_buf = (const char *)chunk_buf + lead_wsp_size;
 	chunk_size -= lead_wsp_size;
 
-	bret = arg->prim_body_decoder(arg->type_descriptor,
+	bret = arg->prim_body_decoder(allocator, arg->type_descriptor,
 		arg->struct_key, chunk_buf, chunk_size);
 	switch(bret) {
 	case XPBD_SYSTEM_FAILURE:
@@ -240,7 +240,7 @@ xer_decode__primitive_body(void *key, const void *chunk_buf, size_t chunk_size, 
 
 
 asn_dec_rval_t
-xer_decode_primitive(asn_codec_ctx_t *opt_codec_ctx,
+xer_decode_primitive(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx,
 	asn_TYPE_descriptor_t *td,
 	void **sptr,
 	size_t struct_size,
@@ -257,7 +257,7 @@ xer_decode_primitive(asn_codec_ctx_t *opt_codec_ctx,
 	 * Create the structure if does not exist.
 	 */
 	if(!*sptr) {
-		*sptr = CALLOC(1, struct_size);
+		*sptr = CXX_ALLOC_WRAP CALLOC(1, struct_size);
 		if(!*sptr) _ASN_DECODE_FAILED;
 	}
 
@@ -268,7 +268,7 @@ xer_decode_primitive(asn_codec_ctx_t *opt_codec_ctx,
 	s_arg.decoded_something = 0;
 	s_arg.want_more = 0;
 
-	rc = xer_decode_general(opt_codec_ctx, &s_ctx, &s_arg,
+	rc = xer_decode_general(allocator, opt_codec_ctx, &s_ctx, &s_arg,
 		xml_tag, buf_ptr, size,
 		xer_decode__unexpected_tag, xer_decode__primitive_body);
 	switch(rc.code) {
@@ -282,7 +282,7 @@ xer_decode_primitive(asn_codec_ctx_t *opt_codec_ctx,
 			 * Where's the result?
 			 * Try to feed with empty body, see if it eats it.
 			 */
-			if(prim_body_decoder(s_arg.type_descriptor,
+			if(prim_body_decoder(allocator, s_arg.type_descriptor,
 				s_arg.struct_key, &ch, 0)
 					!= XPBD_BODY_CONSUMED) {
 				/*

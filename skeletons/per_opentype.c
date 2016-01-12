@@ -16,14 +16,14 @@ typedef struct uper_ugot_key {
 
 static int uper_ugot_refill(asn_per_data_t *pd);
 static int per_skip_bits(asn_per_data_t *pd, int skip_nbits);
-static asn_dec_rval_t uper_sot_suck(asn_codec_ctx_t *, asn_TYPE_descriptor_t *td, asn_per_constraints_t *constraints, void **sptr, asn_per_data_t *pd);
+static asn_dec_rval_t uper_sot_suck(Allocator * allocator, asn_codec_ctx_t *, asn_TYPE_descriptor_t *td, asn_per_constraints_t *constraints, void **sptr, asn_per_data_t *pd);
 
 /*
  * Encode an "open type field".
  * #10.1, #10.2
  */
 int
-uper_open_type_put(asn_TYPE_descriptor_t *td, asn_per_constraints_t *constraints, void *sptr, asn_per_outp_t *po) {
+uper_open_type_put(Allocator * allocator, asn_TYPE_descriptor_t *td, asn_per_constraints_t *constraints, void *sptr, asn_per_outp_t *po) {
 	void *buf;
 	void *bptr;
 	ssize_t size;
@@ -31,20 +31,20 @@ uper_open_type_put(asn_TYPE_descriptor_t *td, asn_per_constraints_t *constraints
 
 	ASN_DEBUG("Open type put %s ...", td->name);
 
-	size = uper_encode_to_new_buffer(td, constraints, sptr, &buf);
+	size = uper_encode_to_new_buffer(allocator, td, constraints, sptr, &buf);
 	if(size <= 0) return -1;
 
 	for(bptr = buf, toGo = size; toGo;) {
-		ssize_t maySave = uper_put_length(po, toGo);
+		ssize_t maySave = uper_put_length(allocator, po, toGo);
 		ASN_DEBUG("Prepending length %d to %s and allowing to save %d",
 			(int)size, td->name, (int)maySave);
 		if(maySave < 0) break;
-		if(per_put_many_bits(po, (uint8_t *)bptr, maySave * 8)) break;
+		if(per_put_many_bits(allocator, po, (uint8_t *)bptr, maySave * 8)) break;
 		bptr = (char *)bptr + maySave;
 		toGo -= maySave;
 	}
 
-	FREEMEM(buf);
+	CXX_ALLOC_WRAP FREEMEM(buf);
 	if(toGo) return -1;
 
 	ASN_DEBUG("Open type put %s of length %ld + overhead (1byte?)",
@@ -54,7 +54,7 @@ uper_open_type_put(asn_TYPE_descriptor_t *td, asn_per_constraints_t *constraints
 }
 
 static asn_dec_rval_t
-uper_open_type_get_simple(asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
+uper_open_type_get_simple(Allocator * allocator, asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
 	asn_per_constraints_t *constraints, void **sptr, asn_per_data_t *pd) {
 	asn_dec_rval_t rv;
 	ssize_t chunk_bytes;
@@ -72,7 +72,7 @@ uper_open_type_get_simple(asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
 	do {
 		chunk_bytes = uper_get_length(pd, -1, &repeat);
 		if(chunk_bytes < 0) {
-			FREEMEM(buf);
+			CXX_ALLOC_WRAP FREEMEM(buf);
 			_ASN_DECODE_STARVED;
 		}
 		if(bufLen + chunk_bytes > bufSize) {
@@ -80,15 +80,15 @@ uper_open_type_get_simple(asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
 			size_t oldSize = 0;
 			oldSize = bufSize;
 			bufSize = chunk_bytes + (bufSize << 2);
-			ptr = REALLOC(buf, oldSize, bufSize);
+			ptr = CXX_ALLOC_WRAP REALLOC(buf, oldSize, bufSize);
 			if(!ptr) {
-				FREEMEM(buf);
+				CXX_ALLOC_WRAP FREEMEM(buf);
 				_ASN_DECODE_FAILED;
 			}
 			buf = (uint8_t *)ptr;
 		}
 		if(per_get_many_bits(pd, buf + bufLen, 0, chunk_bytes << 3)) {
-			FREEMEM(buf);
+			CXX_ALLOC_WRAP FREEMEM(buf);
 			_ASN_DECODE_STARVED;
 		}
 		bufLen += chunk_bytes;
@@ -102,7 +102,7 @@ uper_open_type_get_simple(asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
 	spd.nbits = bufLen << 3;
 
 	ASN_DEBUG_INDENT_ADD(+4);
-	rv = td->uper_decoder(ctx, td, constraints, sptr, &spd);
+	rv = td->uper_decoder(allocator, ctx, td, constraints, sptr, &spd);
 	ASN_DEBUG_INDENT_ADD(-4);
 
 	if(rv.code == RC_OK) {
@@ -113,10 +113,10 @@ uper_open_type_get_simple(asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
 		(spd.nboff == 0 && spd.nbits == 8 && spd.buffer == buf)) &&
                     per_get_few_bits(&spd, padding) == 0) {
 			/* Everything is cool */
-			FREEMEM(buf);
+			CXX_ALLOC_WRAP FREEMEM(buf);
 			return rv;
 		}
-		FREEMEM(buf);
+		CXX_ALLOC_WRAP FREEMEM(buf);
 		if(padding >= 8) {
 			ASN_DEBUG("Too large padding %d in open type", (int)padding);
 			_ASN_DECODE_FAILED;
@@ -125,7 +125,7 @@ uper_open_type_get_simple(asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
 			_ASN_DECODE_FAILED;
 		}
 	} else {
-		FREEMEM(buf);
+		CXX_ALLOC_WRAP FREEMEM(buf);
 		/* rv.code could be RC_WMORE, nonsense in this context */
 		rv.code = RC_FAIL; /* Noone would give us more */
 	}
@@ -134,7 +134,7 @@ uper_open_type_get_simple(asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
 }
 
 static asn_dec_rval_t GCC_NOTUSED
-uper_open_type_get_complex(asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
+uper_open_type_get_complex(Allocator * allocator, asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
 	asn_per_constraints_t *constraints, void **sptr, asn_per_data_t *pd) {
 	uper_ugot_key arg;
 	asn_dec_rval_t rv;
@@ -154,7 +154,7 @@ uper_open_type_get_complex(asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
 	pd->moved = 0;	/* This now counts the open type size in bits */
 
 	ASN_DEBUG_INDENT_ADD(+4);
-	rv = td->uper_decoder(ctx, td, constraints, sptr, pd);
+	rv = td->uper_decoder(allocator, ctx, td, constraints, sptr, pd);
 	ASN_DEBUG_INDENT_ADD(-4);
 
 #define	UPDRESTOREPD	do {						\
@@ -244,21 +244,21 @@ uper_open_type_get_complex(asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
 
 
 asn_dec_rval_t
-uper_open_type_get(asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
+uper_open_type_get(Allocator * allocator, asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
 	asn_per_constraints_t *constraints, void **sptr, asn_per_data_t *pd) {
 
-	return uper_open_type_get_simple(ctx, td, constraints, sptr, pd);
+	return uper_open_type_get_simple(allocator, ctx, td, constraints, sptr, pd);
 }
 
 int
-uper_open_type_skip(asn_codec_ctx_t *ctx, asn_per_data_t *pd) {
+uper_open_type_skip(Allocator * allocator, asn_codec_ctx_t *ctx, asn_per_data_t *pd) {
 	asn_TYPE_descriptor_t s_td;
 	asn_dec_rval_t rv;
 
 	s_td.name = "<unknown extension>";
 	s_td.uper_decoder = uper_sot_suck;
 
-	rv = uper_open_type_get(ctx, &s_td, 0, 0, pd);
+	rv = uper_open_type_get(allocator, ctx, &s_td, 0, 0, pd);
 	if(rv.code != RC_OK)
 		return -1;
 	else
@@ -270,7 +270,7 @@ uper_open_type_skip(asn_codec_ctx_t *ctx, asn_per_data_t *pd) {
  */
 
 static asn_dec_rval_t
-uper_sot_suck(asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
+uper_sot_suck(Allocator * allocator, asn_codec_ctx_t *ctx, asn_TYPE_descriptor_t *td,
 	asn_per_constraints_t *constraints, void **sptr, asn_per_data_t *pd) {
 	asn_dec_rval_t rv;
 

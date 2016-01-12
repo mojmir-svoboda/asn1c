@@ -11,7 +11,7 @@
  * Decode the XER encoding of a given type.
  */
 asn_dec_rval_t
-xer_decode(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
+xer_decode(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 		void **struct_ptr, const void *buffer, size_t size) {
 	asn_codec_ctx_t s_codec_ctx;
 
@@ -34,7 +34,7 @@ xer_decode(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 	/*
 	 * Invoke type-specific decoder.
 	 */
-	return td->xer_decoder(opt_codec_ctx, td, struct_ptr, 0, buffer, size);
+	return td->xer_decoder(allocator, opt_codec_ctx, td, struct_ptr, 0, buffer, size);
 }
 
 
@@ -179,9 +179,9 @@ xer_check_tag(const void *buf_ptr, int size, const char *need_tag) {
 		return rval;					\
 	} while(0)
 
-#define	XER_GOT_BODY(chunk_buf, chunk_size, size)	do {	\
+#define	XER_GOT_BODY(allocator, chunk_buf, chunk_size, size)	do {	\
 		ssize_t converted_size = body_receiver		\
-			(struct_key, chunk_buf, chunk_size,	\
+			(allocator, struct_key, chunk_buf, chunk_size,	\
 				(size_t)chunk_size < size);	\
 		if(converted_size == -1) RETURN(RC_FAIL);	\
 		if(converted_size == 0				\
@@ -189,8 +189,8 @@ xer_check_tag(const void *buf_ptr, int size, const char *need_tag) {
 			RETURN(RC_WMORE);			\
 		chunk_size = converted_size;			\
 	} while(0)
-#define	XER_GOT_EMPTY()	do {					\
-	if(body_receiver(struct_key, 0, 0, size > 0) == -1)	\
+#define	XER_GOT_EMPTY(allocator)	do {					\
+	if(body_receiver(allocator, struct_key, 0, 0, size > 0) == -1)	\
 			RETURN(RC_FAIL);			\
 	} while(0)
 
@@ -198,15 +198,15 @@ xer_check_tag(const void *buf_ptr, int size, const char *need_tag) {
  * Generalized function for decoding the primitive values.
  */
 asn_dec_rval_t
-xer_decode_general(asn_codec_ctx_t *opt_codec_ctx,
+xer_decode_general(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx,
 	asn_struct_ctx_t *ctx,	/* Type decoder context */
 	void *struct_key,
 	const char *xml_tag,	/* Expected XML tag */
 	const void *buf_ptr, size_t size,
 	int (*opt_unexpected_tag_decoder)
-		(void *struct_key, const void *chunk_buf, size_t chunk_size),
+		(Allocator * allocator, void *struct_key, const void *chunk_buf, size_t chunk_size),
 	ssize_t (*body_receiver)
-		(void *struct_key, const void *chunk_buf, size_t chunk_size,
+		(Allocator * allocator, void *struct_key, const void *chunk_buf, size_t chunk_size,
 			int have_more)
 	) {
 
@@ -249,7 +249,7 @@ xer_decode_general(asn_codec_ctx_t *opt_codec_ctx,
 					 * any text is just ignored here.
 					 */
 				} else {
-					XER_GOT_BODY(buf_ptr, ch_size, size);
+					XER_GOT_BODY(allocator, buf_ptr, ch_size, size);
 				}
 				ADVANCE(ch_size);
 				continue;
@@ -272,7 +272,7 @@ xer_decode_general(asn_codec_ctx_t *opt_codec_ctx,
 		case XCT_BOTH:
 			if(ctx->phase) break;
 			/* Finished decoding of an empty element */
-			XER_GOT_EMPTY();
+			XER_GOT_EMPTY(allocator);
 			ADVANCE(ch_size);
 			ctx->phase = 2;	/* Phase out */
 			RETURN(RC_OK);
@@ -291,7 +291,7 @@ xer_decode_general(asn_codec_ctx_t *opt_codec_ctx,
 			 * Certain tags in the body may be expected.
 			 */
 			if(opt_unexpected_tag_decoder
-			&& opt_unexpected_tag_decoder(struct_key,
+			&& opt_unexpected_tag_decoder(allocator, struct_key,
 					buf_ptr, ch_size) >= 0) {
 				/* Tag's processed fine */
 				ADVANCE(ch_size);

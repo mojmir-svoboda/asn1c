@@ -20,6 +20,7 @@
 #include <limits.h>	/* For LONG_MAX */
 #include <stdarg.h>	/* For va_start */
 #include <stddef.h>	/* for offsetof and ptrdiff_t */
+#include "asn_allocator.h"
 
 #ifdef	_WIN32
 
