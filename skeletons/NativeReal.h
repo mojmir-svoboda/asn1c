@@ -13,7 +13,7 @@
 
 #include <asn_application.h>
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -28,7 +28,7 @@ xer_type_encoder_f NativeReal_encode_xer;
 per_type_decoder_f NativeReal_decode_uper;
 per_type_encoder_f NativeReal_encode_uper;
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

@@ -8,7 +8,7 @@
 #include <asn_application.h>
 #include <asn_codecs_prim.h>
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 extern "C" {
 #endif
 
@@ -26,7 +26,7 @@ per_type_encoder_f REAL_encode_uper;
  * Some handy conversion routines. *
  ***********************************/
 
-ssize_t REAL__dump(double d, int canonical, asn_app_consume_bytes_f *cb, void *app_key);
+ssize_t REAL__dump(Allocator * allocator, double d, int canonical, asn_app_consume_bytes_f *cb, void *app_key);
 
 /*
  * Convert between native double type and REAL representation (DER).
@@ -34,10 +34,10 @@ ssize_t REAL__dump(double d, int canonical, asn_app_consume_bytes_f *cb, void *a
  *  0: Value converted successfully
  * -1: An error occured while converting the value: invalid format.
  */
-int asn_REAL2double(const REAL_t *real_ptr, double *d);
-int asn_double2REAL(REAL_t *real_ptr, double d);
+int asn_REAL2double(Allocator * allocator, const REAL_t *real_ptr, double *d);
+int asn_double2REAL(Allocator * allocator, REAL_t *real_ptr, double d);
 
-#ifdef __cplusplus
+#if defined __cplusplus && defined USE_C_LINKAGE
 }
 #endif
 

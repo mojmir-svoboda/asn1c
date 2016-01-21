@@ -46,7 +46,7 @@ asn_TYPE_descriptor_t asn_DEF_NativeReal = {
  * Decode REAL type.
  */
 asn_dec_rval_t
-NativeReal_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
+NativeReal_decode_ber(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx,
 	asn_TYPE_descriptor_t *td,
 	void **dbl_ptr, const void *buf_ptr, size_t size, int tag_mode) {
 	double *Dbl = (double *)*dbl_ptr;
@@ -57,7 +57,7 @@ NativeReal_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 	 * If the structure is not there, allocate it.
 	 */
 	if(Dbl == NULL) {
-		*dbl_ptr = CALLOC(1, sizeof(*Dbl));
+		*dbl_ptr = CXX_ALLOC_WRAP CALLOC(1, sizeof(*Dbl));
 		Dbl = (double *)*dbl_ptr;
 		if(Dbl == NULL) {
 			rval.code = RC_FAIL;
@@ -111,7 +111,7 @@ NativeReal_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 			int ret;
 			uint8_t saved_byte = tmp.buf[tmp.size];
 			tmp.buf[tmp.size] = '\0';
-			ret = asn_REAL2double(&tmp, &d);
+			ret = asn_REAL2double(allocator, &tmp, &d);
 			tmp.buf[tmp.size] = saved_byte;
 			if(ret) {
 				rval.code = RC_FAIL;
@@ -119,27 +119,27 @@ NativeReal_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
 				return rval;
 			}
 		} else if(length < 48 /* Enough for longish %f value. */) {
-			tmp.buf = alloca(length + 1);
+			tmp.buf = (uint8_t *)alloca(length + 1);
 			tmp.size = length;
 			memcpy(tmp.buf, buf_ptr, length);
 			tmp.buf[tmp.size] = '\0';
-			if(asn_REAL2double(&tmp, &d)) {
+			if(asn_REAL2double(allocator, &tmp, &d)) {
 				rval.code = RC_FAIL;
 				rval.consumed = 0;
 				return rval;
 			}
 		} else {
 			/* This should probably never happen: impractically long value */
-			tmp.buf = CALLOC(1, length + 1);
+			tmp.buf = (uint8_t *)CXX_ALLOC_WRAP CALLOC(1, length + 1);
 			tmp.size = length;
 			if(tmp.buf) memcpy(tmp.buf, buf_ptr, length);
-			if(!tmp.buf || asn_REAL2double(&tmp, &d)) {
-				FREEMEM(tmp.buf);
+			if(!tmp.buf || asn_REAL2double(allocator, &tmp, &d)) {
+				CXX_ALLOC_WRAP FREEMEM(tmp.buf);
 				rval.code = RC_FAIL;
 				rval.consumed = 0;
 				return rval;
 			}
-			FREEMEM(tmp.buf);
+			CXX_ALLOC_WRAP FREEMEM(tmp.buf);
 		}
 
 		*Dbl = d;
@@ -158,7 +158,7 @@ NativeReal_decode_ber(asn_codec_ctx_t *opt_codec_ctx,
  * Encode the NativeReal using the standard REAL type DER encoder.
  */
 asn_enc_rval_t
-NativeReal_encode_der(asn_TYPE_descriptor_t *td, void *ptr,
+NativeReal_encode_der(Allocator * allocator, asn_TYPE_descriptor_t *td, void *ptr,
 	int tag_mode, ber_tlv_tag_t tag,
 	asn_app_consume_bytes_f *cb, void *app_key) {
 	double Dbl = *(const double *)ptr;
@@ -168,7 +168,7 @@ NativeReal_encode_der(asn_TYPE_descriptor_t *td, void *ptr,
 	/* Prepare a temporary clean structure */
 	memset(&tmp, 0, sizeof(tmp));
 
-	if(asn_double2REAL(&tmp, Dbl)) {
+	if(asn_double2REAL(allocator, &tmp, Dbl)) {
 		erval.encoded = -1;
 		erval.failed_type = td;
 		erval.structure_ptr = ptr;
@@ -176,14 +176,14 @@ NativeReal_encode_der(asn_TYPE_descriptor_t *td, void *ptr,
 	}
 	
 	/* Encode a fake REAL */
-	erval = der_encode_primitive(td, &tmp, tag_mode, tag, cb, app_key);
+	erval = der_encode_primitive(allocator, td, &tmp, tag_mode, tag, cb, app_key);
 	if(erval.encoded == -1) {
 		assert(erval.structure_ptr == &tmp);
 		erval.structure_ptr = ptr;
 	}
 
 	/* Free possibly allocated members of the temporary structure */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_REAL, &tmp);
+	ASN_STRUCT_FREE_CONTENTS_ONLY(allocator, asn_DEF_REAL, &tmp);
 
 	return erval;
 }
@@ -192,7 +192,7 @@ NativeReal_encode_der(asn_TYPE_descriptor_t *td, void *ptr,
  * Decode REAL type using PER.
  */
 asn_dec_rval_t
-NativeReal_decode_uper(asn_codec_ctx_t *opt_codec_ctx,
+NativeReal_decode_uper(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx,
 	asn_TYPE_descriptor_t *td, asn_per_constraints_t *constraints,
 		void **dbl_ptr, asn_per_data_t *pd) {
 	double *Dbl = (double *)*dbl_ptr;
@@ -207,22 +207,22 @@ NativeReal_decode_uper(asn_codec_ctx_t *opt_codec_ctx,
 	 * If the structure is not there, allocate it.
 	 */
 	if(Dbl == NULL) {
-		*dbl_ptr = CALLOC(1, sizeof(*Dbl));
+		*dbl_ptr = CXX_ALLOC_WRAP CALLOC(1, sizeof(*Dbl));
 		Dbl = (double *)*dbl_ptr;
 		if(Dbl == NULL)
 			_ASN_DECODE_FAILED;
 	}
 
 	memset(&tmp, 0, sizeof(tmp));
-	rval = OCTET_STRING_decode_uper(opt_codec_ctx, td, NULL,
+	rval = OCTET_STRING_decode_uper(allocator, opt_codec_ctx, td, NULL,
 			&ptmp, pd);
 	if(rval.code != RC_OK) {
-		ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_REAL, &tmp);
+		ASN_STRUCT_FREE_CONTENTS_ONLY(allocator, asn_DEF_REAL, &tmp);
 		return rval;
 	}
 
-	ret = asn_REAL2double(&tmp, Dbl);
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_REAL, &tmp);
+	ret = asn_REAL2double(allocator, &tmp, Dbl);
+	ASN_STRUCT_FREE_CONTENTS_ONLY(allocator, asn_DEF_REAL, &tmp);
 	if(ret) _ASN_DECODE_FAILED;
 
 	return rval;
@@ -232,7 +232,7 @@ NativeReal_decode_uper(asn_codec_ctx_t *opt_codec_ctx,
  * Encode the NativeReal using the OCTET STRING PER encoder.
  */
 asn_enc_rval_t
-NativeReal_encode_uper(asn_TYPE_descriptor_t *td,
+NativeReal_encode_uper(Allocator * allocator, asn_TYPE_descriptor_t *td,
 	asn_per_constraints_t *constraints, void *sptr, asn_per_outp_t *po) {
 	double Dbl = *(const double *)sptr;
 	asn_enc_rval_t erval;
@@ -243,16 +243,16 @@ NativeReal_encode_uper(asn_TYPE_descriptor_t *td,
 	/* Prepare a temporary clean structure */
 	memset(&tmp, 0, sizeof(tmp));
 
-	if(asn_double2REAL(&tmp, Dbl))
+	if(asn_double2REAL(allocator, &tmp, Dbl))
 		_ASN_ENCODE_FAILED;
 	
 	/* Encode a DER REAL */
-	erval = OCTET_STRING_encode_uper(td, NULL, &tmp, po);
+	erval = OCTET_STRING_encode_uper(allocator, td, NULL, &tmp, po);
 	if(erval.encoded == -1)
 		erval.structure_ptr = sptr;
 
 	/* Free possibly allocated members of the temporary structure */
-	ASN_STRUCT_FREE_CONTENTS_ONLY(asn_DEF_REAL, &tmp);
+	ASN_STRUCT_FREE_CONTENTS_ONLY(allocator, asn_DEF_REAL, &tmp);
 
 	return erval;
 }
@@ -261,7 +261,7 @@ NativeReal_encode_uper(asn_TYPE_descriptor_t *td,
  * Decode the chunk of XML text encoding REAL.
  */
 asn_dec_rval_t
-NativeReal_decode_xer(asn_codec_ctx_t *opt_codec_ctx,
+NativeReal_decode_xer(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx,
 	asn_TYPE_descriptor_t *td, void **sptr, const char *opt_mname,
 		const void *buf_ptr, size_t size) {
 	asn_dec_rval_t rval;
@@ -270,7 +270,7 @@ NativeReal_decode_xer(asn_codec_ctx_t *opt_codec_ctx,
 	double *Dbl = (double *)*sptr;
 
 	if(!Dbl) {
-		*sptr = CALLOC(1, sizeof(double));
+		*sptr = CXX_ALLOC_WRAP CALLOC(1, sizeof(double));
 		Dbl = (double *)*sptr;
 		if(!Dbl) {
 			rval.code = RC_FAIL;
@@ -279,22 +279,22 @@ NativeReal_decode_xer(asn_codec_ctx_t *opt_codec_ctx,
 		}
 	}
 
-	rval = REAL_decode_xer(opt_codec_ctx, td, (void **)stp, opt_mname,
+	rval = REAL_decode_xer(allocator, opt_codec_ctx, td, (void **)stp, opt_mname,
 		buf_ptr, size);
 	if(rval.code == RC_OK) {
-		if(asn_REAL2double(st, Dbl)) {
+		if(asn_REAL2double(allocator, st, Dbl)) {
 			rval.code = RC_FAIL;
 			rval.consumed = 0;
 		}
 	} else {
 		rval.consumed = 0;
 	}
-	ASN_STRUCT_FREE(asn_DEF_REAL, st);
+	ASN_STRUCT_FREE(allocator, asn_DEF_REAL, st);
 	return rval;
 }
 
 asn_enc_rval_t
-NativeReal_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
+NativeReal_encode_xer(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr,
 	int ilevel, enum xer_encoder_flags_e flags,
 		asn_app_consume_bytes_f *cb, void *app_key) {
 	const double *Dbl = (const double *)sptr;
@@ -304,7 +304,7 @@ NativeReal_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
 
 	if(!Dbl) _ASN_ENCODE_FAILED;
 
-	er.encoded = REAL__dump(*Dbl, flags & XER_F_CANONICAL, cb, app_key);
+	er.encoded = REAL__dump(allocator, *Dbl, flags & XER_F_CANONICAL, cb, app_key);
 	if(er.encoded < 0) _ASN_ENCODE_FAILED;
 
 	_ASN_ENCODED_OK(er);
@@ -314,20 +314,20 @@ NativeReal_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
  * REAL specific human-readable output.
  */
 int
-NativeReal_print(asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
+NativeReal_print(Allocator * allocator, asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
 	asn_app_consume_bytes_f *cb, void *app_key) {
 	const double *Dbl = (const double *)sptr;
 
 	(void)td;	/* Unused argument */
 	(void)ilevel;	/* Unused argument */
 
-	if(!Dbl) return (cb("<absent>", 8, app_key) < 0) ? -1 : 0;
+	if(!Dbl) return (cb(allocator, "<absent>", 8, app_key) < 0) ? -1 : 0;
 
-	return (REAL__dump(*Dbl, 0, cb, app_key) < 0) ? -1 : 0;
+	return (REAL__dump(allocator, *Dbl, 0, cb, app_key) < 0) ? -1 : 0;
 }
 
 void
-NativeReal_free(asn_TYPE_descriptor_t *td, void *ptr, int contents_only) {
+NativeReal_free(Allocator * allocator, asn_TYPE_descriptor_t *td, void *ptr, int contents_only) {
 
 	if(!td || !ptr)
 		return;
@@ -336,7 +336,7 @@ NativeReal_free(asn_TYPE_descriptor_t *td, void *ptr, int contents_only) {
 		td->name, contents_only, ptr);
 
 	if(!contents_only) {
-		FREEMEM(ptr);
+		CXX_ALLOC_WRAP FREEMEM(ptr);
 	}
 }
 

@@ -79,7 +79,7 @@ static struct specialRealValue_s {
 };
 
 ssize_t
-REAL__dump(double d, int canonical, asn_app_consume_bytes_f *cb, void *app_key) {
+REAL__dump(Allocator * allocator, double d, int canonical, asn_app_consume_bytes_f *cb, void *app_key) {
 	char local_buf[64];
 	char *buf = local_buf;
 	ssize_t buflen = sizeof(local_buf);
@@ -93,7 +93,7 @@ REAL__dump(double d, int canonical, asn_app_consume_bytes_f *cb, void *app_key) 
 	if(isnan(d)) {
 		buf = specialRealValue[SRV__NOT_A_NUMBER].string;
 		buflen = specialRealValue[SRV__NOT_A_NUMBER].length;
-		return (cb(buf, buflen, app_key) < 0) ? -1 : buflen;
+		return (cb(allocator, buf, buflen, app_key) < 0) ? -1 : buflen;
 	} else if(!_asn_isfinite(d)) {
 		if(copysign(1.0, d) < 0.0) {
 			buf = specialRealValue[SRV__MINUS_INFINITY].string;
@@ -102,7 +102,7 @@ REAL__dump(double d, int canonical, asn_app_consume_bytes_f *cb, void *app_key) 
 			buf = specialRealValue[SRV__PLUS_INFINITY].string;
 			buflen = specialRealValue[SRV__PLUS_INFINITY].length;
 		}
-		return (cb(buf, buflen, app_key) < 0) ? -1 : buflen;
+		return (cb(allocator, buf, buflen, app_key) < 0) ? -1 : buflen;
 	} else if(ilogb(d) <= -INT_MAX) {
 		if(copysign(1.0, d) < 0.0) {
 			buf = "-0";
@@ -111,7 +111,7 @@ REAL__dump(double d, int canonical, asn_app_consume_bytes_f *cb, void *app_key) 
 			buf = "0";
 			buflen = 1;
 		}
-		return (cb(buf, buflen, app_key) < 0) ? -1 : buflen;
+		return (cb(allocator, buf, buflen, app_key) < 0) ? -1 : buflen;
 	}
 
 	/*
@@ -127,8 +127,8 @@ REAL__dump(double d, int canonical, asn_app_consume_bytes_f *cb, void *app_key) 
 			buflen = ret;
 			break;
 		}
-		if(buf != local_buf) FREEMEM(buf);
-		buf = (char *)MALLOC(buflen);
+		if(buf != local_buf) CXX_ALLOC_WRAP FREEMEM(buf);
+		buf = (char *)CXX_ALLOC_WRAP MALLOC(buflen);
 		if(!buf) return -1;
 	} while(1);
 
@@ -143,7 +143,7 @@ REAL__dump(double d, int canonical, asn_app_consume_bytes_f *cb, void *app_key) 
 
 		dot = (buf[0] == 0x2d /* '-' */) ? (buf + 2) : (buf + 1);
 		if(*dot >= 0x30) {
-			if(buf != local_buf) FREEMEM(buf);
+			if(buf != local_buf) CXX_ALLOC_WRAP FREEMEM(buf);
 			errno = EINVAL;
 			return -1;	/* Not a dot, really */
 		}
@@ -164,7 +164,7 @@ REAL__dump(double d, int canonical, asn_app_consume_bytes_f *cb, void *app_key) 
 				}
 				expptr++;
 				if(expptr > end) {
-					if(buf != local_buf) FREEMEM(buf);
+					if(buf != local_buf) CXX_ALLOC_WRAP FREEMEM(buf);
 					errno = EINVAL;
 					return -1;
 				}
@@ -190,7 +190,7 @@ REAL__dump(double d, int canonical, asn_app_consume_bytes_f *cb, void *app_key) 
 			}
 		}
 		if(E == end) {
-			if(buf != local_buf) FREEMEM(buf);
+			if(buf != local_buf) CXX_ALLOC_WRAP FREEMEM(buf);
 			errno = EINVAL;
 			return -1;		/* No promised E */
 		}
@@ -229,13 +229,13 @@ REAL__dump(double d, int canonical, asn_app_consume_bytes_f *cb, void *app_key) 
 		}
 	}
 
-	ret = cb(buf, buflen, app_key);
-	if(buf != local_buf) FREEMEM(buf);
+	ret = cb(allocator, buf, buflen, app_key);
+	if(buf != local_buf) CXX_ALLOC_WRAP FREEMEM(buf);
 	return (ret < 0) ? -1 : buflen;
 }
 
 int
-REAL_print(asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
+REAL_print(Allocator * allocator, asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
 	asn_app_consume_bytes_f *cb, void *app_key) {
 	const REAL_t *st = (const REAL_t *)sptr;
 	ssize_t ret;
@@ -245,17 +245,17 @@ REAL_print(asn_TYPE_descriptor_t *td, const void *sptr, int ilevel,
 	(void)ilevel;	/* Unused argument */
 
 	if(!st || !st->buf)
-		ret = cb("<absent>", 8, app_key);
-	else if(asn_REAL2double(st, &d))
-		ret = cb("<error>", 7, app_key);
+		ret = cb(allocator, "<absent>", 8, app_key);
+	else if(asn_REAL2double(allocator, st, &d))
+		ret = cb(allocator, "<error>", 7, app_key);
 	else
-		ret = REAL__dump(d, 0, cb, app_key);
+		ret = REAL__dump(allocator, d, 0, cb, app_key);
 
 	return (ret < 0) ? -1 : 0;
 }
 
 asn_enc_rval_t
-REAL_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
+REAL_encode_xer(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr,
 	int ilevel, enum xer_encoder_flags_e flags,
 		asn_app_consume_bytes_f *cb, void *app_key) {
 	REAL_t *st = (REAL_t *)sptr;
@@ -264,10 +264,10 @@ REAL_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
 
 	(void)ilevel;
 
-	if(!st || !st->buf || asn_REAL2double(st, &d))
+	if(!st || !st->buf || asn_REAL2double(allocator, st, &d))
 		_ASN_ENCODE_FAILED;
 
-	er.encoded = REAL__dump(d, flags & XER_F_CANONICAL, cb, app_key);
+	er.encoded = REAL__dump(allocator, d, flags & XER_F_CANONICAL, cb, app_key);
 	if(er.encoded < 0) _ASN_ENCODE_FAILED;
 
 	_ASN_ENCODED_OK(er);
@@ -278,7 +278,7 @@ REAL_encode_xer(asn_TYPE_descriptor_t *td, void *sptr,
  * Decode the chunk of XML text encoding REAL.
  */
 static enum xer_pbd_rval
-REAL__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chunk_buf, size_t chunk_size) {
+REAL__xer_body_decode(Allocator * allocator, asn_TYPE_descriptor_t *td, void *sptr, const void *chunk_buf, size_t chunk_size) {
 	REAL_t *st = (REAL_t *)sptr;
 	double value;
 	const char *xerdata = (const char *)chunk_buf;
@@ -315,7 +315,7 @@ REAL__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chunk_b
 			default: return XPBD_SYSTEM_FAILURE;
 			}
 
-			if(asn_double2REAL(st, dv))
+			if(asn_double2REAL(allocator, st, dv))
 				return XPBD_SYSTEM_FAILURE;
 
 			return XPBD_BODY_CONSUMED;
@@ -327,48 +327,48 @@ REAL__xer_body_decode(asn_TYPE_descriptor_t *td, void *sptr, const void *chunk_b
 	/*
 	 * Copy chunk into the nul-terminated string, and run strtod.
 	 */
-	b = (char *)MALLOC(chunk_size + 1);
+	b = (char *)CXX_ALLOC_WRAP MALLOC(chunk_size + 1);
 	if(!b) return XPBD_SYSTEM_FAILURE;
 	memcpy(b, chunk_buf, chunk_size);
 	b[chunk_size] = 0;	/* nul-terminate */
 
 	value = strtod(b, &endptr);
-	FREEMEM(b);
+	CXX_ALLOC_WRAP FREEMEM(b);
 	if(endptr == b) return XPBD_BROKEN_ENCODING;
 
-	if(asn_double2REAL(st, value))
+	if(asn_double2REAL(allocator, st, value))
 		return XPBD_SYSTEM_FAILURE;
 
 	return XPBD_BODY_CONSUMED;
 }
 
 asn_dec_rval_t
-REAL_decode_xer(asn_codec_ctx_t *opt_codec_ctx,
+REAL_decode_xer(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx,
 	asn_TYPE_descriptor_t *td, void **sptr, const char *opt_mname,
 		const void *buf_ptr, size_t size) {
 
-	return xer_decode_primitive(opt_codec_ctx, td,
+	return xer_decode_primitive(allocator, opt_codec_ctx, td,
 		sptr, sizeof(REAL_t), opt_mname,
 		buf_ptr, size, REAL__xer_body_decode);
 }
 
 asn_dec_rval_t
-REAL_decode_uper(asn_codec_ctx_t *opt_codec_ctx,
+REAL_decode_uper(Allocator * allocator, asn_codec_ctx_t *opt_codec_ctx,
 	asn_TYPE_descriptor_t *td, asn_per_constraints_t *constraints,
 	void **sptr, asn_per_data_t *pd) {
 	(void)constraints;	/* No PER visible constraints */
-	return OCTET_STRING_decode_uper(opt_codec_ctx, td, 0, sptr, pd);
+	return OCTET_STRING_decode_uper(allocator, opt_codec_ctx, td, 0, sptr, pd);
 }
 
 asn_enc_rval_t
-REAL_encode_uper(asn_TYPE_descriptor_t *td,
+REAL_encode_uper(Allocator * allocator, asn_TYPE_descriptor_t *td,
 	asn_per_constraints_t *constraints, void *sptr, asn_per_outp_t *po) {
 	(void)constraints;	/* No PER visible constraints */
-	return OCTET_STRING_encode_uper(td, 0, sptr, po);
+	return OCTET_STRING_encode_uper(allocator, td, 0, sptr, po);
 }
 
 int
-asn_REAL2double(const REAL_t *st, double *dbl_value) {
+asn_REAL2double(Allocator * allocator, const REAL_t *st, double *dbl_value) {
 	unsigned int octv;
 
 	if(!st || !st->buf) {
@@ -439,11 +439,11 @@ asn_REAL2double(const REAL_t *st, double *dbl_value) {
 			char *b;
 			if(st->size > 100) {
 				/* Avoid malicious stack overflow in alloca() */
-				buf = (char *)MALLOC(st->size);
+				buf = (char *)CXX_ALLOC_WRAP MALLOC(st->size);
 				if(!buf) return -1;
 				used_malloc = 1;
 			} else {
-				buf = alloca(st->size);
+				buf = (char *)alloca(st->size);
 			}
 			b = buf;
 			/* Copy without the first byte and with 0-termination */
@@ -459,11 +459,11 @@ asn_REAL2double(const REAL_t *st, double *dbl_value) {
 		d = strtod(buf, &endptr);
 		if(*endptr != '\0') {
 			/* Format is not consistent with ISO 6093 */
-			if(used_malloc) FREEMEM(buf);
+			if(used_malloc) CXX_ALLOC_WRAP FREEMEM(buf);
 			errno = EINVAL;
 			return -1;
 		}
-		if(used_malloc) FREEMEM(buf);
+		if(used_malloc) CXX_ALLOC_WRAP FREEMEM(buf);
 		if(_asn_isfinite(d)) {
 			*dbl_value = d;
 			return 0;
@@ -561,7 +561,7 @@ asn_REAL2double(const REAL_t *st, double *dbl_value) {
  * [1 bit sign]  [11 bits exponent]  [52 bits mantissa]
  */
 int
-asn_double2REAL(REAL_t *st, double dbl_value) {
+asn_double2REAL(Allocator * allocator, REAL_t *st, double dbl_value) {
 #ifdef	WORDS_BIGENDIAN		/* Known to be big-endian */
 	int littleEndian = 0;
 #else				/* need to test: have no explicit information */
@@ -596,7 +596,7 @@ asn_double2REAL(REAL_t *st, double dbl_value) {
 	|| expval == INT_MAX	/* catches isfin() and maybe isnan() */
 	) {
 		if(!st->buf || st->size < 2) {
-			ptr = (uint8_t *)MALLOC(2);
+			ptr = (uint8_t *)CXX_ALLOC_WRAP MALLOC(2);
 			if(!ptr) return -1;
 			st->buf = ptr;
 		}
@@ -718,13 +718,13 @@ asn_double2REAL(REAL_t *st, double dbl_value) {
 	ptr += buflen;
 	buflen = ptr - buf;
 
-	ptr = (uint8_t *)MALLOC(buflen + 1);
+	ptr = (uint8_t *)CXX_ALLOC_WRAP MALLOC(buflen + 1);
 	if(!ptr) return -1;
 
 	memcpy(ptr, buf, buflen);
 	buf[buflen] = 0;	/* JIC */
 
-	if(st->buf) FREEMEM(st->buf);
+	if(st->buf) CXX_ALLOC_WRAP FREEMEM(st->buf);
 	st->buf = ptr;
 	st->size = buflen;
 

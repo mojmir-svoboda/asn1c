@@ -58,7 +58,9 @@ typedef	unsigned int	uint32_t;
 #define isnan _isnan
 #define finite _finite
 #define copysign _copysign
-#define	ilogb	_logb
+#if _MSC_VER < 1800 // maybe earlier, adjust if necessary
+#	define	ilogb	_logb
+#endif
 #else	/* !_MSC_VER */
 #include <stdint.h>
 #endif	/* _MSC_VER */
