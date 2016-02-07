@@ -222,9 +222,19 @@ asn1c_type_name(arg_t *arg, asn1p_expr_t *expr, enum tnfmt _format) {
 				if(expr->expr_type == ASN_BASIC_REAL)
 					return "double";
 				else if(asn1c_type_fits_long(arg, expr) == FL_FITS_UNSIGN)
-					return "unsigned long";
+        {
+          if (arg->flags & A1C_USE_INT64)
+            return "uint64_t";
+          else
+            return "unsigned long";
+        }
 				else
-					return "long";
+        {
+          if (arg->flags & A1C_USE_INT64)
+            return "int64_t";
+          else
+            return "long";
+        }
 			default:
 				typename = 0;
 				switch(expr->expr_type) {
@@ -305,8 +315,13 @@ asn1c_type_fits_long(arg_t *arg, asn1p_expr_t *expr) {
  * standard will give it an unsigned type.
  * It is defined here as a constant expression.
  */
-#define	RIGHTMAX	2147483647	/* of 32-bit integer type */
-#define	LEFTMIN		(-RIGHTMAX-1)	/* of 32-bit integer type */
+#if defined USE_INT64
+# define	RIGHTMAX	LLONG_MAX	/* of 64-bit integer type */
+# define	LEFTMIN		(-RIGHTMAX-1)	/* of 64-bit integer type */
+#else
+# define	RIGHTMAX	LONG_MAX	/* of 32-bit integer type */
+# define	LEFTMIN		(-RIGHTMAX-1)	/* of 32-bit integer type */
+#endif
 
 	/* Descend to the terminal type */
 	expr = asn1f_find_terminal_type_ex(arg->asn, expr);
@@ -379,6 +394,15 @@ asn1c_type_fits_long(arg_t *arg, asn1p_expr_t *expr) {
 	right = range->right;
 	asn1constraint_range_free(range);
 
+#if defined USE_INT64
+	/* Special case for unsigned */
+	if(left.type == ARE_VALUE
+		&& left.value >= 0
+	&& right.type == ARE_VALUE
+		&& right.value > LLONG_MAX
+		&& right.value <= ULLONG_MAX)
+		return FL_FITS_UNSIGN;
+#else
 	/* Special case for unsigned */
 	if(left.type == ARE_VALUE
 		&& left.value >= 0
@@ -386,7 +410,7 @@ asn1c_type_fits_long(arg_t *arg, asn1p_expr_t *expr) {
 		&& right.value > 2147483647
 		&& right.value <= 4294967295UL)
 		return FL_FITS_UNSIGN;
-		
+#endif
 
 	/* If some fixed value is outside of target range, not fit */
 	if(left.type == ARE_VALUE

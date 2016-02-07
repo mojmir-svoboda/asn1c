@@ -1814,7 +1814,7 @@ PER_FROM_alphabet_characters(asn1cnst_range_t *range) {
 static int
 emit_single_member_PER_constraint(arg_t *arg, asn1cnst_range_t *range, int alphabetsize, char *type) {
 	if(!range || range->incompatible || range->not_PER_visible) {
-		OUT("{ APC_UNCONSTRAINED,\t-1, -1,  0,  0 }");
+		OUT("{ asn_per_constraint_s::APC_UNCONSTRAINED,\t-1, -1,  0,  0 }");
 		return 0;
 	}
 
@@ -1871,9 +1871,9 @@ emit_single_member_PER_constraint(arg_t *arg, asn1cnst_range_t *range, int alpha
 			}
 			}
 
-			OUT("{ APC_CONSTRAINED%s,%s% d, % d, ",
+			OUT("{ asn_per_constraint_s::APC_CONSTRAINED%s,%s% d, % d, ",
 				range->extensible
-					? " | APC_EXTENSIBLE" : "",
+					? " | asn_per_constraint_s::APC_EXTENSIBLE" : "",
 				range->extensible ? " " : "\t", rbits, ebits);
 
 			if(alphabetsize) {
@@ -1889,16 +1889,16 @@ emit_single_member_PER_constraint(arg_t *arg, asn1cnst_range_t *range, int alpha
 			}
 		} else {
 			if(range->extensible) {
-				OUT("{ APC_SEMI_CONSTRAINED | APC_EXTENSIBLE, "
+				OUT("{ asn_per_constraint_s::APC_SEMI_CONSTRAINED | asn_per_constraint_s::APC_EXTENSIBLE, "
 					"-1, ");
 			} else {
-				OUT("{ APC_SEMI_CONSTRAINED,\t-1, -1, ");
+				OUT("{ asn_per_constraint_s::APC_SEMI_CONSTRAINED,\t-1, -1, ");
 			}
 		}
 		OINTS(range->left.value); OUT(", ");
 		OINTS(range->right.value); OUT(" }");
 	} else {
-		OUT("{ APC_UNCONSTRAINED,\t-1, -1,  0,  0 }");
+		OUT("{ asn_per_constraint_s::APC_UNCONSTRAINED,\t-1, -1,  0,  0 }");
 	}
 
   pcmt:
@@ -2002,7 +2002,7 @@ emit_member_PER_constraints(arg_t *arg, asn1p_expr_t *expr, const char *pfx) {
 				range->extensible = 0;
 				break;
 			case ASN_STRING_UniversalString:
-				OUT("{ APC_CONSTRAINED,\t32, 32,"
+				OUT("{ asn_per_constraint_s::APC_CONSTRAINED,\t32, 32,"
 					" 0, 2147483647 }"
 					" /* special case 1 */\n");
 				goto avoid;

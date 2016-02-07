@@ -77,7 +77,17 @@ enum asn1c_flags {
 	 * -fline-refs
 	 * Include ASN.1 module's line numbers in comments.
 	 */
-	A1C_LINE_REFS       = 0x20000
+	A1C_LINE_REFS       = 0x20000,
+	/*
+	 * -fuse-int64
+	 * Use int64 instead of long
+	 */
+	A1C_USE_INT64      = 0x40000,
+	/*
+	 * -fuse-cxx
+	 * Generate more c++ friendly code
+	 */
+	A1C_USE_CXX      = 0x80000
 };
 
 /*

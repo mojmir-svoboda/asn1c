@@ -96,6 +96,10 @@ main(int ac, char **av) {
 			asn1_compiler_flags &= ~A1C_USE_WIDE_TYPES;
 		} else if(strcmp(optarg, "wide-types") == 0) {
 			asn1_compiler_flags |= A1C_USE_WIDE_TYPES;
+		} else if(strcmp(optarg, "use-int64") == 0) {
+			asn1_compiler_flags |= A1C_USE_INT64;
+		} else if(strcmp(optarg, "use-cxx") == 0) {
+			asn1_compiler_flags |= A1C_USE_CXX;
 		} else if(strcmp(optarg, "line-refs") == 0) {
 			asn1_compiler_flags |= A1C_LINE_REFS;
 		} else if(strcmp(optarg, "no-constraints") == 0) {
@@ -471,6 +475,8 @@ usage(const char *av0) {
 "  -fno-include-deps     Do not generate courtesy #includes for dependencies\n"
 "  -funnamed-unions      Enable unnamed unions in structures\n"
 "  -fwide-types          Use INTEGER_t instead of \"long\" by default, etc.\n"
+"  -fuse-int64           Use int64_t instead of \"long\" by default, etc.\n"
+"  -fuse-cxx             Emit c++ conformant code.\n"
 "\n"
 
 "  -gen-PER              Generate PER support code\n"
